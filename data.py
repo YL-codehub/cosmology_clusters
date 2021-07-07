@@ -8,6 +8,7 @@ import random as rd
 import Cosmological_tools as cosmo
 import pickle as pk
 import scipy.optimize as opt
+import matplotlib.pyplot as plt
 
 class Catalog:
     def __init__(self, inputfile = None, logM_intervals = 0.01, z_intervals = 0.01):
@@ -19,22 +20,22 @@ class Catalog:
         self.bins = {}                       # [ {'Mmin':,'zmin':,'latt':, 'long':, 'counts':}, ...] , a bin is [Mmin,Mmin+M_intervals] x [zmin, zmin+z_intervals]
         self.universe = None
 
-    def Generate(self, Minf = 5e14, Msup = 1e16, zinf =0.95, zsup = 0.96, H_0 = 70, Omega_m = 0.3, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8 = 0.80, n_s = 0.96):
+    def Generate(self, Minf = 1e14, Msup = 1e15, zinf = 0, zsup = 3, H_0 = 70, Omega_m = 0.3, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8 = 0.80, n_s = 0.96):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
-        Ms = np.exp(np.linspace(m.log(Minf),m.log(Msup),int((m.log(Msup)-m.log(Minf))/self.logM_intervals)+1))
+        a,b = m.log(Minf, 10), m.log(Msup, 10)
+        Ms = np.power(10,np.linspace(a, b, int((b-a)/self.logM_intervals)+1))
         Zs = np.linspace(zinf,zsup,int((zsup-zinf)/self.z_intervals)+1)
         self.universe = cosmo.Cosmology(H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
         nbin = 1
         for Mm in Ms: #bin [Mm, Mm+Minterval], but exponential dependance
             for zm in Zs: # bin [zm, zm+z_interval]
                 ## Mean counts in the bin thanks to theory
-                mean_poisson = self.universe.expected_Counts(Mm,Mm*(1+m.exp(self.logM_intervals)),zm,zm+self.z_intervals,(m.pi/180)**2) # per deg^2
-                print(mean_poisson)
+                mean_poisson = self.universe.expected_Counts(Mm,Mm*10**self.logM_intervals,zm,zm+self.z_intervals,1) # per srad
+                # print(mean_poisson)
                 N = np.random.poisson(mean_poisson)
-                ## Adding some noise (1% std and gaussian)
-                # N *= rd.gauss(1,0.01)
-                ## Encode data
-                print({'Mmin':Mm, 'zmin':zm, 'latt':None, 'long':None, 'counts':N})
+                # print(N)
+                ## Encode data :
+                # print({'Mmin':Mm, 'zmin':zm, 'latt':None, 'long':None, 'counts':N})
                 self.bins[nbin] = {'Mmin':Mm, 'zmin':zm, 'latt':None, 'long':None, 'counts':N}
                 nbin +=1
 
@@ -46,11 +47,49 @@ class Catalog:
     def read_bins(self,name):
         a_file = open(name, "rb")
         self.bins = pk.load(a_file)
+    def plotLikelihood1D(self,S,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
+        '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
+        self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=Omega_m_ini, Omega_r=Omega_r, Omega_v=Omega_v, Omega_T=Omega_T,sigma_8=sigma_8_ini, n_s=n_s)
+        def loglikelihood(parameters):
+            res = 0
+            self.universe.Om = parameters[0]
+            self.universe.sigma8 = parameters[1]
+            self.universe.update()
+            #oups je crois qu'il faut aussi relancer le calcul d'As ducoup...
+            for k in self.bins.keys():
+                mean_poisson = self.universe.expected_Counts(self.bins[k]['Mmin'], self.bins[k]['Mmin']*(1+ m.exp( self.logM_intervals)),
+                                                        self.bins[k]['zmin'],self.bins[k]['zmin'] + self.z_intervals, (m.pi / 180) ** 2)
+                res += -mean_poisson+self.bins[k]['counts']*m.log(mean_poisson) # take the opposite to take the minimum
+            print(parameters)
+            return res
+        Y = np.ravel([loglikelihood([0.3,s]) for s in S])
+        plt.plot(S,Y)
+        plt.show()
+
+    def plotLikelihood(self,O,S,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
+        '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
+        self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=Omega_m_ini, Omega_r=Omega_r, Omega_v=Omega_v, Omega_T=Omega_T,sigma_8=sigma_8_ini, n_s=n_s)
+        def loglikelihood(parameters):
+            res = 0
+            self.universe.Om = parameters[0]
+            self.universe.sigma8 = parameters[1]
+            self.universe.update()
+            #oups je crois qu'il faut aussi relancer le calcul d'As ducoup...
+            for k in self.bins.keys():
+                mean_poisson = self.universe.expected_Counts(self.bins[k]['Mmin'], self.bins[k]['Mmin']*(1+ m.exp( self.logM_intervals)),
+                                                        self.bins[k]['zmin'],self.bins[k]['zmin'] + self.z_intervals, (m.pi / 180) ** 2)
+                res += -mean_poisson+self.bins[k]['counts']*m.log(mean_poisson) # take the opposite to take the minimum
+            print(parameters)
+            return res
+        Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
+        X, Y = np.meshgrid(O,S)
+        plt.contourf(X,Y,Z,7)
+        plt.show()
 
     def refine(self,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
         '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
         self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=Omega_m_ini, Omega_r=Omega_r, Omega_v=Omega_v, Omega_T=Omega_T,sigma_8=sigma_8_ini, n_s=n_s)
-        def loglikelihood(parameters):
+        def mloglikelihood(parameters):
             res = 0
             self.universe.Om = parameters[0]
             self.universe.sigma8 = parameters[1]
@@ -63,17 +102,20 @@ class Catalog:
             print(parameters)
             return res
 
-        x = opt.minimize(loglikelihood, [Omega_m_ini,sigma_8_ini],options={ 'disp': True}, bounds = ((0,1),(0,2)))
+        x = opt.minimize(mloglikelihood, [Omega_m_ini,sigma_8_ini],options={ 'disp': True}, bounds = ((0,1),(0,2)))
         return x
 
 #
-temp = Catalog()
-temp.Generate()
-temp.save_bins('test')
+# temp = Catalog()
+# temp.Generate()
+# temp.save_bins('test')
 #
 # temp = Catalog()
 # temp.read_bins('test')
-# print(temp.refine())
+# # temp.plotLikelihood(np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
+# temp.plotLikelihood1D(np.linspace(1,3,5))
+
+# on peut encore accélerer tout ça en n'utilisant plus expectedcounts mais en faisant un version array (M,z) de projectedHMF
 
 ####################################"""
 def readFits(file):

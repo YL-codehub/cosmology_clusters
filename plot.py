@@ -33,7 +33,7 @@ def plotHMFatM(M):
     plt.legend()
     plt.grid()
     plt.show()
-# plotHMFatM(1e14)
+# plotHMFatM(e14)
 
 def plotHMF3D():
     # X = M in solar Masses

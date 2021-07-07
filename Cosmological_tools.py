@@ -259,14 +259,14 @@ class Cosmology:
         '''dN/(dz dOmega dlnM) = Number of objects per unit of projected area on the sky and redshift (units = srad^-2) '''
         return(self.HMF(M,z,multiplicity)*self.differential_comoving_Volume(z))
 
-    def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2, mode = 'quad'):
+    def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2, mode = 'array'):
         '''Expected counts in a rad2 (units = rad^2) portion of the sky, given the Halo theory and so given the HMF density.'''
         # return(rad2 * intg.dblquad(lambda lnM,z : self.projected_HMF(m.exp(lnM),z), m.log(Mmin), m.log(Mmax), lambda x : zmin, lambda x : zmax)[0]) #dlnM = dM/M
         if mode == 'quad':
             return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,
                              lambda x: zmax)[0])  # dlnM = dM/M
         elif mode == 'array':
-            return (rad2 * self.projected_HMF((Mmin+Mmax)/2, (zmin+zmax)/2)*(m.log(Mmax,10)-m.log(Mmin,10))*(zmax-zmin))
+            return (rad2 * self.projected_HMF(m.exp((m.log(Mmax)+m.log(Mmin))/2), (zmin+zmax)/2)*(m.log(Mmax)-m.log(Mmin))*(zmax-zmin))
 
 
         # temp = Cosmology(Omega_m=0.3,Omega_v = 0.7)
@@ -352,4 +352,5 @@ def checkplot(temp,file):
 # print(t.time()-Time)
 
 # print(temp.projected_HMF(1e14,1)*0.01*0.01)
-# print(temp.expected_Counts(1e14,10**(14.01),1,1.01,(m.pi/180)**2,mode = 'array')) # 1 srad
+# print(temp.expected_Counts(1e14,10**(14.01),1,1.01,1,mode = 'array')) # 1 srad
+# print(temp.expected_Counts(1e13,1e16,0,3,1))
