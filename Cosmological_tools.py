@@ -6,6 +6,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 
+##### efficient only for big discretizations in the compute of integrals
+
+# from numba import njit
+#
+# # parallelized functions
+# @njit
+# def njit_transfer_Function_BKKS(k,Om,h):
+#     '''Transfer function at wavenumber k (units Mpc^-1)'''
+#     theta = 1
+#     q = k * theta ** 0.5 / (Om * h ** 2)  # Mpc
+#     return (np.log(1 + 2.34 * q) / (2.34 * q)) * np.power(1 + 3.89 * q + np.power(16.1 * q, 2) + np.power(5.46 * q, 3) + np.power(6.71 * q, 4), -0.25)
+#
+# njit_transfer_Function_BKKS(np.ones((1,2)),0.3,0.7) # one call to compile
+#
+# @njit
+# def njit_window(y):
+#     '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
+#     return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
+#
+# njit_window(np.ones((1,2)))
+
+
 ## Definition of a cosmology
 class Cosmology:
     def __init__(self, H_0 = 70, Omega_m = 0.3, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8 = 0.80, n_s = 0.96, k = 0):
@@ -137,40 +159,60 @@ class Cosmology:
         '''Linear gross factor (units = 1) at a given redshift z, associated to density-type expansions like density contrast'''
         return( (self.H(z,mode = 'z')/self.Ho)*intg.quad(lambda x : 1/(x*self.H(x))**3, 0, 1/(1+z))[0]/self.constant1)
 
-    def transfer_Function_BKKS(self,k,theta =1):
+    def transfer_Function_BKKS(self,k,theta =1, mode = 'default'):
         '''Transfer function at wavenumber k (units Mpc^-1)'''
-        q = k*theta**0.5/(self.Om*self.h**2) #Mpc
-        if k == 0:
-            return(1)
-        else:
-            return((m.log(1+2.34*q)/(2.34*q))*(1+3.89*q + (16.1*q)**2 + (5.46*q)**3 + (6.71*q)**4)**(-0.25))
-
-    def window(self,y):
-        '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
-        try:
-            if y <1e-7:
+        if mode == 'default':
+            q = k*theta**0.5/(self.Om*self.h**2) #Mpc
+            if k == 0:
                 return(1)
-            elif y == m.inf:
-                return(0)
             else:
-                return(3*(m.sin(y)/y-m.cos(y))/y**2)
-        except ValueError:
-            print(y)
+                return((m.log(1+2.34*q)/(2.34*q))*(1+3.89*q + (16.1*q)**2 + (5.46*q)**3 + (6.71*q)**4)**(-0.25))
+        elif mode == 'np': #k is numpuy array
+            q = k * theta ** 0.5 / (self.Om * self.h ** 2)  # Mpc
+            return (np.log(1 + 2.34 * q) / (2.34 * q)) * np.power(1 + 3.89 * q + np.power(16.1 * q, 2) + np.power(5.46 * q,3) + np.power(6.71 * q,4), -0.25)
 
-    def initial_Power_Spectrum_BKKS(self,k):
+    def window(self,y,mode = 'default'):
+        '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
+        if mode == 'default':
+            try:
+                if y <1e-7:
+                    return(1)
+                elif y == m.inf:
+                    return(0)
+                else:
+                    return(3*(m.sin(y)/y-m.cos(y))/y**2)
+            except ValueError:
+                print(y)
+        elif mode == 'np':
+            return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
+
+    def initial_Power_Spectrum_BKKS(self,k,mode = 'default'):
         '''spatial part of Power spectrum (units = Mpc^3) at wavenumber k (units = Mpc^-1)'''
-        return(self.As*k**self.ns*self.transfer_Function_BKKS(k)**2)
+        if mode == 'default':
+            return(self.As*k**self.ns*self.transfer_Function_BKKS(k)**2)
+        elif mode == 'np': #ie k is an array
+            return (self.As * np.power(k,self.ns) * np.power(self.transfer_Function_BKKS(k,mode = 'np'),2))
+            # return (self.As * np.power(k, self.ns) * np.power(njit_transfer_Function_BKKS(k, self.Om,self.h), 2))
 
-    def initial_sigma(self,M):
+    def initial_sigma(self,M, mode = 'np'):
         '''Initial RMS density fluctuation (units = 1) over a given mass M (units = solar Mass)'''
         ### Attention c'est bien la densité de matière qu'il nous faut
         R = (3*M/(4*m.pi*self.Om*self.critical_density0))**(1/3) # (units = Mpc)
         # return(m.sqrt(4*m.pi*intg.quad(lambda k : self.initial_Power_Spectrum_BKKS(k) * self.window(k * R)** 2 * k ** 2 ,0, m.inf,limit = 100)[0] / ((2 * m.pi) ** 3)))
         # return (m.sqrt(4 * m.pi * intg.fixed_quad(lambda u: self.initial_Power_Spectrum_BKKS(m.exp(u[0])) * self.window(m.exp(u[0]) * R) ** 2 * m.exp(3*u[0]), -100, 100)[0] / ((2 * m.pi) ** 3)))
-        return (m.sqrt(4 * m.pi *
+        if mode == 'quad':
+            return (m.sqrt(4 * m.pi *
                        intg.quad(lambda k: self.initial_Power_Spectrum_BKKS(k) * self.window(k * R) ** 2 * k ** 2, 0,
                                  m.inf,epsabs = 1)[0] / ((2 * m.pi) ** 3)))
-
+        elif mode == 'np':
+            K = np.linspace(-2, 5, 100) #USE njit functions only if more than 1000 values of k
+            # K = np.power(10, X)
+            # Y = np.ravel([self.initial_Power_Spectrum_BKKS(k) * self.window(k* R) ** 2 * k**2 for k in K]) # k = 10**x
+            K = np.power(10,K)
+            Y = self.initial_Power_Spectrum_BKKS(K, mode = 'np') * np.power(self.window(K * R, mode = 'np'),2) * np.power(K,2)# k = 10**x
+            # Y = self.initial_Power_Spectrum_BKKS(K, mode='np') * np.power(njit_window(K * R), 2) * np.power(
+            #     K, 2)  # k = 10**x
+            return m.sqrt(4 * m.pi * np.trapz(Y,K) / ((2 * m.pi) ** 3))
     # def initial_sigmaref(self, M):
     #     '''Initial RMS density fluctuation (units = 1) over a given mass M (units = solar Mass)'''
     #     X, Yref = rd.readtxt('sigmaM.txt')
@@ -217,14 +259,17 @@ class Cosmology:
         '''dN/(dz dOmega dlnM) = Number of objects per unit of projected area on the sky and redshift (units = srad^-2) '''
         return(self.HMF(M,z,multiplicity)*self.differential_comoving_Volume(z))
 
-    def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2):
+    def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2, mode = 'quad'):
         '''Expected counts in a rad2 (units = rad^2) portion of the sky, given the Halo theory and so given the HMF density.'''
         # return(rad2 * intg.dblquad(lambda lnM,z : self.projected_HMF(m.exp(lnM),z), m.log(Mmin), m.log(Mmax), lambda x : zmin, lambda x : zmax)[0]) #dlnM = dM/M
-        return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,
+        if mode == 'quad':
+            return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,
                              lambda x: zmax)[0])  # dlnM = dM/M
+        elif mode == 'array':
+            return (rad2 * self.projected_HMF((Mmin+Mmax)/2, (zmin+zmax)/2)*(m.log(Mmax,10)-m.log(Mmin,10))*(zmax-zmin))
 
 
-temp = Cosmology(Omega_m=0.3,Omega_v = 0.7)
+        # temp = Cosmology(Omega_m=0.3,Omega_v = 0.7)
 # #
 # print(temp.expected_Counts(5e14,1e16,0,5,(m.pi/180)**2)) # 1 srad
 
@@ -243,8 +288,8 @@ def readtxt(file):
 def checkplot(temp,file):
     '''temp = cosmology object'''
     X, Yref = readtxt(file)
-    # plt.plot(X,Yref, color = 'red')
-    plt.loglog(X,Yref, color = 'red')
+    plt.plot(X,Yref, color = 'red')
+    # plt.loglog(X,Yref, color = 'red')
     #
     # # Angular diameter distance
     # Y = [temp.angular_diameter_Distance(x) for x in X]
@@ -266,20 +311,20 @@ def checkplot(temp,file):
     # plt.xlabel('Wave number (units = Mpc^-1)')
     # plt.ylabel('Initial Power Spectrum P(k) (units = Mpc^3)')
 
-    # # # RMS density fluctuation
-    # Y = [temp.initial_sigma(x*1e15) for x in X]
-    # plt.xlabel('Mass (units = 1e15 SolarMass)')
-    # plt.ylabel('RMS density fluctuation (units = 1)')
+    # # RMS density fluctuation
+    Y = [temp.initial_sigma(x*1e15) for x in X]
+    plt.xlabel('Mass (units = 1e15 SolarMass)')
+    plt.ylabel('RMS density fluctuation (units = 1)')
 
     # # # dlnsig/dlnM
     # Y = [temp.dlnsig(x*1e15,1) for x in X]
     # plt.xlabel('Mass (units = 1e15 SolarMass)')
     # plt.ylabel('dln sigma /dlnM(M,z=1) for')
 
-    # # Projected HMF (Press-Schechter)
-    Y = [temp.projected_HMF(x*1e15,1)*(m.pi/180)**2 for x in X]
-    plt.xlabel('Mass (units = 1e15 SolarMass)')
-    plt.ylabel('dN/dz/dlnM(M,z=1) for 1 square degree')
+    # # # Projected HMF (Press-Schechter)
+    # Y = [temp.projected_HMF(x*1e15,1)*(m.pi/180)**2 for x in X]
+    # plt.xlabel('Mass (units = 1e15 SolarMass)')
+    # plt.ylabel('dN/dz/dlnM(M,z=1) for 1 square degree')
     # #
     # # # Projected HMF (Tinker)
     # Y = [temp.projected_HMF(x*1e15,1,multiplicity='T')*(m.pi/180)**2 for x in X]
@@ -288,19 +333,23 @@ def checkplot(temp,file):
 
     ######### plot :
     plt.grid()
-    # plt.plot(X,Y, linestyle = '--',color = 'blue')
-    plt.loglog(X,Y, linestyle = '--',color = 'blue')
+    plt.plot(X,Y, linestyle = '--',color = 'blue')
+    # plt.loglog(X,Y, linestyle = '--',color = 'blue')
     # plt.loglog(X,(np.ravel(Y)/np.ravel(Yref))/np.ravel(Yref))
-    plt.semilogx()
+    # plt.semilogx()
     # plt.legend(['Ref','Mine'])
     plt.title('H0 = 70, OmegaM=0.7, OmegaV=0.3, sigma = 0.8, n_s = 0.96')
     plt.show()
-#
+# #
 # temp = Cosmology()
-# checkplot(temp,'hmfM_PS.txt')
+# # print(temp.window(np.ravel([1]), mode = 'np'))
+# # print(temp.window(1))
+# checkplot(temp,'sigmaM.txt')
 # #
 # import time as t
 # Time = t.time()
-print(temp.expected_Counts(1e14,10**(14.01),1,1.01,(m.pi/180)**2)) # 1 srad
+# print(temp.expected_Counts(1e14,10**(14.01),1,1.01,(m.pi/180)**2)) # 1 srad
 # print(t.time()-Time)
 
+# print(temp.projected_HMF(1e14,1)*0.01*0.01)
+# print(temp.expected_Counts(1e14,10**(14.01),1,1.01,(m.pi/180)**2,mode = 'array')) # 1 srad
