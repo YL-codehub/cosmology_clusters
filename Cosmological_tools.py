@@ -220,14 +220,13 @@ class Cosmology:
     def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2):
         '''Expected counts in a rad2 (units = rad^2) portion of the sky, given the Halo theory and so given the HMF density.'''
         # return(rad2 * intg.dblquad(lambda lnM,z : self.projected_HMF(m.exp(lnM),z), m.log(Mmin), m.log(Mmax), lambda x : zmin, lambda x : zmax)[0]) #dlnM = dM/M
-        return (rad2 *
-                intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,
+        return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,
                              lambda x: zmax)[0])  # dlnM = dM/M
 
 
 temp = Cosmology(Omega_m=0.3,Omega_v = 0.7)
-#
-print(temp.expected_Counts(5e14,1e16,0,5,(m.pi/180)**2)) # 1 srad
+# #
+# print(temp.expected_Counts(5e14,1e16,0,5,(m.pi/180)**2)) # 1 srad
 
 def readtxt(file):
     X = []
@@ -298,10 +297,10 @@ def checkplot(temp,file):
     plt.show()
 #
 # temp = Cosmology()
-# # checkplot(temp,'hmfM_PS.txt')
+# checkplot(temp,'hmfM_PS.txt')
 # #
 # import time as t
 # Time = t.time()
-# print(temp.expected_Counts(1e13,(1+m.exp(0.01))*1e13,1,1.01,(m.pi/180)**2)) # 1 srad
+print(temp.expected_Counts(1e14,10**(14.01),1,1.01,(m.pi/180)**2)) # 1 srad
 # print(t.time()-Time)
 
