@@ -9,7 +9,7 @@ def plotHMFatZ(z):
     # X = M in solar Masses
     X = np.linspace(14,16,201)
     temp = cosmo.Cosmology()
-    Y = np.ravel([temp.projected_HMF(np.power(10,M),z)*(np.pi/180)**2 for M in X])
+    Y = np.ravel([temp.projected_HMF(np.power(10,M),z,mode = 'np')*(np.pi/180)**2 for M in X])
     plt.plot(X,Y)
     plt.title('HMF per deg^2 at redshift '+str(z))
     plt.xlabel('log M[solarMasses]')
@@ -25,7 +25,7 @@ def plotHMFatM(M):
     else:
         X = np.linspace(0,3,501)
     temp = cosmo.Cosmology()
-    Y = np.ravel([temp.projected_HMF(M,z)*(np.pi/180)**2 for z in X])
+    Y = np.ravel([temp.projected_HMF(M,z,mode = 'np')*(np.pi/180)**2 for z in X])
     plt.plot(X,Y, label = 'Mine', color = 'blue', linestyle = '--')
     plt.title('HMF per deg^2 at '+format(M,'.2e')+' solar masses')
     plt.xlabel('Redshift')
@@ -33,6 +33,7 @@ def plotHMFatM(M):
     plt.legend()
     plt.grid()
     plt.show()
+
 # plotHMFatM(e14)
 
 def plotHMF3D():
@@ -40,7 +41,8 @@ def plotHMF3D():
     X = np.linspace(14,16,51)
     Y = np.linspace(0,3,101)
     temp = cosmo.Cosmology()
-    Z = np.array([[temp.projected_HMF(np.power(10,M),z)*(np.pi/180)**2 for M in X] for z in Y])
+    ## Z = np.array([[temp.projected_HMF(np.power(10,M),z,mode = 'np')*(np.pi/180)**2 for M in X] for z in Y])
+    Z = temp.projected_HMF(np.power(10,X),Y).T*(np.pi/180)**2
     X, Y = np.meshgrid(X, Y)
     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
     # ls = LightSource(270, 45)
@@ -55,4 +57,4 @@ def plotHMF3D():
     plt.xlabel('log M[solarMasses]')
     plt.ylabel('Redshift')
     plt.show()
-# plotHMF3D()
+plotHMF3D()
