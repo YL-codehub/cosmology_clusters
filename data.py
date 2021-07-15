@@ -94,7 +94,7 @@ class Catalog:
         # Y = np.exp(Y)
         Y = Y-Y.min()
         # Y = Y/Y.sum()
-        Y = np.exp(Y/Y.max()) #normalize to get computable exponential, argmax unchanged
+        Y = np.exp(Y-Y.max()) #normalize to get computable exponential, argmax unchanged
         Y = Y/Y.sum() #normalize exp
         t = np.linspace(0, Y.max(), 1000)
         integral = ((Y >= t[:, None, None]) * Y).sum(axis = (1,2))
@@ -180,42 +180,38 @@ class Catalog:
 # temp.Generate()
 # temp.save_bins('test')
 # # please take the same rad2
-temp = Catalog()
-temp.read_bins('test')
-temp.plotLikelihood(np.linspace(0.25,0.35,40),np.linspace(0.75,0.85,40))
+# temp = Catalog()
+# temp.read_bins('test')
+# temp.plotLikelihood(np.linspace(0.25,0.35,40),np.linspace(0.75,0.85,40))
 # temp.plotLikelihood1D(np.linspace(0.5,1,20)) #sigma8
 # temp.plotLikelihood1D(np.linspace(0.2,0.4,10)) #Omega M
 
 # # debug contours
-# O = np.loadtxt('countsresultO2')
-# S = np.loadtxt('countsresultS2')
-# Z = np.loadtxt('countsresultZ2')
+O = np.loadtxt('countsresultO')
+S = np.loadtxt('countsresultS')
+Z = np.loadtxt('countsresultZ')
 
-# # 2D plot
-# Z = Z[:,len(S)//2]
-# Z = np.exp(Z-Z.max()) # potentiellement à modifier
-# Z = Z/Z.sum()
-# n = S[len(S)//2]
-# print(n)
-# plt.plot(O,Z)
-# plt.show()
 
-# a = np.argmax(Z)
-# ## Check
-# print('Omega_m :',O[a%len(S)])
-# print('Sigma :',S[a//len(S)])
-# X, Y = np.meshgrid(O,S)
-# Z = np.exp(Z-Z.max())
-# Z = Z/Z.sum()
-# #
-# t = np.linspace(0, Z.max(), 1000)
-# integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-# f = interpolate.interp1d(integral,t)
-# t_contours = f(np.array([0.95,0.68]))
-# plt.contour(X,Y,Z,t_contours)
-# plt.colorbar()
-# plt.scatter(O[a%len(S)],S[a//len(S)])
-# plt.show()
+a = np.argmax(Z)
+## Check
+print('Omega_m :',O[a%len(S)])
+print('Sigma :',S[a//len(S)])
+X, Y = np.meshgrid(O,S)
+Z = np.exp(Z-Z.max())
+Z = Z/Z.sum()
+#
+t = np.linspace(0, Z.max(), 1000)
+integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+f = interpolate.interp1d(integral,t)
+t_contours = f(np.array([0.95,0.680]))
+cs = plt.contour(X,Y,Z,t_contours, colors = ['red','blue'],alpha = 0.5)
+plt.scatter(O[a%len(S)],S[a//len(S)],marker= '+')
+plt.grid()
+plt.title('Constraints on cosmological parameters thanks to Poisson max likelihood.\n'
+          ' Contours of confidence at 95% (red) and 68% (blue).')
+plt.xlabel(r'$\Omega_m$')
+plt.ylabel(r'$\sigma_8$')
+plt.show()
 
 # ## MonteCarlo :
 # temp = Catalog()
