@@ -127,7 +127,7 @@ class Catalog:
             for k in self.bins.keys():
                 mean_poisson = self.universe.expected_Counts(self.bins[k]['Mmin'], self.bins[k]['Mmin']*10**self.logM_intervals, self.bins[k]['zmin'],self.bins[k]['zmin'] + self.z_intervals)
                 res += -mean_poisson+self.bins[k]['counts']*m.log(mean_poisson) # take the opposite to take the minimum
-            res += -mean_poisson + self.bins[k]['counts']*np.log(mean_poisson)
+            # res += -mean_poisson + self.bins[k]['counts']*np.log(mean_poisson)
             # means_poisson = self.universe.expected_Counts(Mmin, Mmin * 10 ** self.logM_intervals,Zmin, Zmin + self.z_intervals, mode='superarray')
             # res = -means_poisson + Counts * np.log(means_poisson)  # take the opposite to take the minimum
             return res
@@ -136,23 +136,23 @@ class Catalog:
         np.savetxt('countsresultZ',Z)
         np.savetxt('countsresultO',O)
         np.savetxt('countsresultS',S)
+
         a = np.argmax(Z)
-        print('Omega_m :',O[a%len(S)])
-        print('Sigma :',S[a//len(S)])
-        X, Y = np.meshgrid(O,S)
-        # Z-=Z.min()
-        # Z = Z/Z.max() # potentiellement à modifier
-        # Z+=Z.min()
-        # Z = Z/Z.sum()
+        print('Omega_m :', O[a % len(S)])
+        print('Sigma :', S[a // len(S)])
+        #
+        # X, Y = np.meshgrid(O, S)
+        # Z = np.exp(Z - Z.max())
+        # Z = Z / Z.sum()
+        # #
         # t = np.linspace(0, Z.max(), 1000)
         # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
         # f = interpolate.interp1d(integral, t)
-        # t_contours = f(np.array([0.95,0.68]))
-        # plt.contour(X,Y,Z,t_contours)
-
-        plt.contour(X, Y, Z)
-        plt.colorbar()
-        plt.show()
+        # t_contours = f(np.array([0.95, 0.68]))
+        # plt.contour(X, Y, Z, t_contours)
+        # plt.colorbar()
+        # plt.scatter(O[a % len(S)], S[a // len(S)])
+        # plt.show()
 
     def refine(self,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
         '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
@@ -182,12 +182,53 @@ class Catalog:
 # # please take the same rad2
 temp = Catalog()
 temp.read_bins('test')
-temp.plotLikelihood(np.linspace(0.2,0.4,30),np.linspace(0.7,0.9,30))
+temp.plotLikelihood(np.linspace(0.25,0.35,40),np.linspace(0.75,0.85,40))
 # temp.plotLikelihood1D(np.linspace(0.5,1,20)) #sigma8
 # temp.plotLikelihood1D(np.linspace(0.2,0.4,10)) #Omega M
 
-# on peut encore accélerer tout ça en n'utilisant plus expectedcounts mais en faisant un version array (M,z) de projectedHMF
+# # debug contours
+# O = np.loadtxt('countsresultO2')
+# S = np.loadtxt('countsresultS2')
+# Z = np.loadtxt('countsresultZ2')
 
+# # 2D plot
+# Z = Z[:,len(S)//2]
+# Z = np.exp(Z-Z.max()) # potentiellement à modifier
+# Z = Z/Z.sum()
+# n = S[len(S)//2]
+# print(n)
+# plt.plot(O,Z)
+# plt.show()
+
+# a = np.argmax(Z)
+# ## Check
+# print('Omega_m :',O[a%len(S)])
+# print('Sigma :',S[a//len(S)])
+# X, Y = np.meshgrid(O,S)
+# Z = np.exp(Z-Z.max())
+# Z = Z/Z.sum()
+# #
+# t = np.linspace(0, Z.max(), 1000)
+# integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+# f = interpolate.interp1d(integral,t)
+# t_contours = f(np.array([0.95,0.68]))
+# plt.contour(X,Y,Z,t_contours)
+# plt.colorbar()
+# plt.scatter(O[a%len(S)],S[a//len(S)])
+# plt.show()
+
+# ## MonteCarlo :
+# temp = Catalog()
+# for i in range(10):
+#     temp.bins = {}
+#     temp.Generate()
+#     temp.plotLikelihood(np.linspace(0.2, 0.4, 20), np.linspace(0.7, 0.9, 20))
+
+#REsults (20x20 maillage) :
+# Omega_m = [0.2947368421052632, 0.2947368421052632, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685]
+# Sigma = [0.8052631578947368, 0.8157894736842105, 0.7947368421052632, 0.8157894736842105, 0.7842105263157895, 0.8157894736842105, 0.7947368421052632, 0.7947368421052632, 0.8157894736842105, 0.7947368421052632]
+# plt.scatter(Omega_m,Sigma,linewidths=0.2,marker = '+')
+# plt.show()
 ####################################"""
 def readFits(file):
     with fits.open(file) as hdu:

@@ -40,34 +40,48 @@ def initial_Power_Spectrum_BKKS(K):
 N = 40
 delta_r = 100 #Mpc ie entre 2 points on met 1000Mpc
 delta_k = 1/delta_r # à corriger avec un 2pi ?
-r = np.random.normal(0, 1, size= (N,N,N))
-
+noise = np.random.normal(0, 1, size= (N,N,N))
+print(noise)
+# plt.imshow(noise[N//2,:,:])
+# plt.show()
 # FOURIER SPACE
-R = np.fft.fftn(r,axes = [0,1,2])
-# R = np.fft.rfftn(r,axes = [0,1,2])
-# print(R.shape)
-K = np.sqrt(np.array([[[(k1*delta_k)**2+(k2*delta_k)**2+(k3*delta_k)**2 for k3 in range(N)] for k2 in range(N)] for k1 in range(N)]))
-P = initial_Power_Spectrum_BKKS(K)
+# NOISE = np.fft.fftn(noise,axes = [0,1,2])
+NOISE = np.fft.rfftn(noise,axes = [0,1,2])
+# print(NOISE.shape)
+noise = np.fft.irfftn(NOISE[N//2,:,:])
+print(noise)
+plt.imshow(noise)
+plt.show()
+Kx = np.fft.fftfreq(N,d=delta_r)
+Rx = np.fft.fftfreq(N,d=delta_k)
+print(Kx)
+print(Rx)
+# Kx
+# K = np.sqrt(np.array([[[(k1*delta_k)**2+(k2*delta_k)**2+(k3*delta_k)**2 for k3 in range(N)] for k2 in range(N)] for k1 in range(N)]))
+K = np.sqrt(np.array([[[(k1*delta_k)**2+(k2*delta_k)**2+(k3*delta_k)**2 for k3 in Kx] for k2 in Kx] for k1 in Kx]))
+P = initial_Power_Spectrum_BKKS(K) ### OK JE CROIS QUE L'ORDRE DES K EST A REVOIR !!
 sqP = np.nan_to_num(np.sqrt(P))
-sqPR = np.multiply(sqP,R)
+# sqPNO = np.multiply(sqP,NOISE)
 
-# BACK TO REAL SPACE
-p = np.fft.ifftn(P,axes = [0,1,2])
+# BACK TO SPATIAL SPACE
+# p = np.fft.ifftn(P)
+# print(p)
 # p = np.fft.irfftn(P)
-sqpr = np.fft.ifftn(sqPR,axes = [0,1,2])
-# sqpr = np.fft.irfftn(sqPR)
+# sqpno = np.fft.ifftn(sqPNO,axes = [0,1,2])
+# sqpno = np.fft.irfftn(sqPNO)
 
 #TOMOGRAPHIE :
-p2D = p[int(N/2),:,:]
-sqpr2D = sqpr[int(N/2),:,:]
+# p2D = p[int(N/2),:,:]
+# sqpno2D = sqpno[int(N/2),:,:]
+# # print(p2D)
+# # 2D plot (tomographie milieu)
+# x = np.linspace(1,N,N)
+# y = x
+# x,y = np.meshgrid(x,y)
+# plt.contourf(x,y,sqpno2D)
+# plt.colorbar()
+# plt.show()
 
-# 2D plot (tomographie milieu)
-x = np.linspace(1,N,N)
-y = x
-x,y = np.meshgrid(x,y)
-plt.contourf(x,y,sqpr2D)
-plt.colorbar()
-plt.show()
 
 
 
