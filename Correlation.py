@@ -1,4 +1,4 @@
-+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import scipy.stats as st
 import numpy as np
 import math as m

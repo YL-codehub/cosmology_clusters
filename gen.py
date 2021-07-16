@@ -1,7 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import math as m
-import scipy.integrate as intg
+import matplotlib.pyplot as plt
+import csv
 
 ###
 Ho = 70  # Hubble constant today (units = km.s^-1.Mpc^-1)
@@ -14,157 +13,181 @@ ns = 0.96  # Inflation exponent in Power spectrum law (units = 1)
 k = 0  # Curvature -1, 0 ( <=> Omega_T = 1) or 1 (units = 1)
 h = 0.7
 
+def readtxt(file):
+    X = []
+    Y = []
+    with open(file, newline='\n') as csvfile1:
+        page1 = csv.reader(csvfile1, quotechar=' ')
+        for Row in page1:
+            a = Row[0].split()
+            if len(a)<=2:
+                X.append(float(a[0]))
+                Y.append(float(a[1]))
+    return(X,Y)
 
 def transfer_Function_BKKS(k,Om = 0.3,h= 0.7):
     '''Transfer function at wavenumber k (units Mpc^-1)'''
     theta = 1
     q = k * theta ** 0.5 / (Om * h ** 2)  # Mpc
-    return (np.log(1 + 2.34 * q) / (2.34 * q)) * np.power(1 + 3.89 * q + np.power(16.1 * q, 2) + np.power(5.46 * q, 3) + np.power(6.71 * q, 4), -0.25)
+    res = (np.log(1 + 2.34 * q) / (2.34 * q)) * np.power(1 + 3.89 * q + np.power(16.1 * q, 2) + np.power(5.46 * q, 3) + np.power(6.71 * q, 4), -0.25)
+    res = np.nan_to_num(res,nan = 1)
+    return res
 
 
 def window(y):
     '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
     return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
 
-# As = sigma8 ** 2 * (2 * m.pi) ** 3 / (4*m.pi*intg.quad(lambda K : K **  ns *  transfer_Function_BKKS(K) ** 2 * abs( window(K * 8/ h))** 2 * K ** 2, 0, m.inf,limit = 100)[0])
+import scipy.integrate as intg
+# As = sigma8 ** 2 * (2 * np.pi) ** 3 / (4*np.pi*intg.quad(lambda K : K **  ns *  transfer_Function_BKKS(K) ** 2 * abs( window(K * 8/ h))** 2 * K ** 2, 0, np.inf,limit = 100)[0])
+# print(As)
 As = 6027309.4271296235
 
 def initial_Power_Spectrum_BKKS(K):
     '''spatial part of Power spectrum (units = Mpc^3) at wavenumber k (units = Mpc^-1)'''
     return (As * np.multiply(np.power(K,ns),np.power(transfer_Function_BKKS(K),2)))
 
-
-####"
-# n = np.zeros((200,200), dtype=complex)
-# n[60:80, 20:40] = np.exp(1j*np.random.uniform(0, 2*np.pi, (20, 20)))
-# im = np.fft.ifftn(n).real
-# plt.imshow(im)
-# plt.show()
-
-# n = np.zeros((200,200), dtype=complex)
-# n = np.exp(1j*np.random.uniform(0, 2*np.pi, (200, 200))) #génération d'un bruit blanc
-# im = np.fft.ifftn(n).real
-# plt.imshow(im)
-# plt.show()
-
-##### 2D fft
-N = 40
-delta_r = 100 #Mpc ie entre 2 points on met 1000Mpc
-delta_k = 1/delta_r # à corriger avec un 2pi ?
-r = np.random.normal(0, 1, size= (N,N)) #200x200 Mpc box
-R = np.fft.fftn(r)
-K = np.sqrt(np.array([[(k1*delta_k)**2+(k2*delta_k)**2 for k2 in range(N)] for k1 in range(N)]))
-sqP = np.nan_to_num(np.sqrt(initial_Power_Spectrum_BKKS(K)))
-sqPR = np.multiply(sqP,R)
-sqpr = np.fft.ifftn(sqPR).real # ou real ? ???
-#
-# Matricial plot
-# plt.imshow(sqpr)
-# plt.imshow(r)
-# plt.imshow(R)
-
-# 2D plot
-# x = np.linspace(1,N,N)
-# y = x
-# x,y = np.meshgrid(x,y)
-# plt.contourf(x,y,sqpr,5)
-# # plt.contourf(x,y,sqpr,[0.001*i for i in range(20)])
-# plt.colorbar()
-# plt.show()
-
-# Correlation analytical plot
-sqp = np.fft.ifftn(sqP).real
-
-x = np.sqrt(np.array([[(x1*delta_r)**2+(x2*delta_r)**2 for x2 in range(N)] for x1 in range(N)]))
-plt.scatter(x,sqp,linewidths=0.05,color = 'red')
-plt.ylabel('Correlation function')
-plt.xlabel('Radial distance (Mpc)')
-plt.show()
+#==================================
+def main():
+#==================================
 
 
-# correlation 1D along an axe (delta (x_0) delta (x_0 + r) )
-# r = np.linspace(-99,100,200, dtype=int)
-# Xsi = [sqpr[99,99]*sqpr[i+99,i+99] for i in r]
-# plt.plot(r,Xsi)
-# plt.show()
+    nc = 20      # define how many cells your box has
+    boxlen = nc*20       # define length of box (Mpc)
+    dx = boxlen/nc          # get size of a cell (Mpc), 20Mpc gives ~ 8h^-1 Mpc sphere
 
-# correlation 1D along an axe (mean_x_0 delta (x_0) delta (x_0 + r) ) = un peu plus significant mais bof
-# r = np.linspace(-49,50,100, dtype=int)
-# Xsi = [np.mean([sqpr[99-j,99+j]*sqpr[i+99-j,i+99+j] for j in r]) for i in r]
-# plt.plot(r,Xsi)
-# plt.show()
+    # get overdensity field
+    delta = np.random.normal(0, 1, size=(nc, nc, nc))
+    # delta_k = np.fft.rfftn(delta)
+    delta_k = np.fft.rfftn(delta)/(nc**(3/2)) #equivalent to norm = "ortho")
+    # delta_k = np.random.normal(0, 1, size=(nc, nc, nc//2+1))
+    # delta_k = delta_k/np.sqrt(np.mean(np.abs(delta_k))**2)
+    # print(np.mean(np.abs(delta_k))**2)
+    # get 3d array of index integer distances to k = (0, 0, 0), ie compute k values' grid in Fourier space
+    dist = np.minimum(np.arange(nc), np.arange(nc,0,-1))
+    dist_z = np.arange(nc//2+1)
+    dist *= dist #²
+    dist_z *= dist_z #²
+    dist_3d = np.sqrt(dist[:, None, None] + dist[:, None] + dist_z)
 
-# # mean Correlation 2D
-# val = {}
-# n =1
-# for i1 in range(N):
-#     for i2 in range(N):
-#         for j1 in range(N):
-#             for j2 in range(N):
-#                 # ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2)
-#                 # try:
-#                 #     val[ind].append(sqpr[i1,j1]*sqpr[i2,j2])
-#                 # except KeyError:
-#                 #     val[ind] = [sqpr[i1,j1]*sqpr[i2,j2]]
-#                 ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2)
-#                 try:
-#                     val[ind].append(sqpr[i1, j1] * sqpr[i2, j2])
-#                 except KeyError:
-#                     val[ind] = [sqpr[i1, j1] * sqpr[i2, j2]]
-# X = []
-# Xsi = []
-# for key in val.keys():
-#     if len(val[key])>N**2/2:
-#         Xsi.append(np.mean(val[key])) #biased correlation estimation,
-#         X.append(np.sqrt(key) * delta_r)
-#     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
-# plt.scatter(X,Xsi,linewidths=0.05,color = 'red')
-# plt.ylabel('Correlation function estimation')
-# plt.xlabel('Radial distance (Mpc)')
-# plt.show()
+#ajout:
+    dk = 2*np.pi/boxlen
+    kMpc = dist_3d*dk #Mpc^-1
+
+    # Compute spectrum
+    P_BKKS = initial_Power_Spectrum_BKKS(kMpc)
+    sqP_BKKS = np.sqrt(initial_Power_Spectrum_BKKS(kMpc))
+    # print(P_BKKS)
+    Spectrum = np.multiply(delta_k,sqP_BKKS)
+
+    # print(Spectrum)
+
+    # Back to real space
+    delta_new = np.fft.irfftn(Spectrum, norm = "ortho")*(1/dx)**(3/2) # converting sqrt(P(k))**3 (Mpc^3/2) to cells^3/2
+    # delta_new = np.fft.irfftn(Spectrum)/(2*np.pi)**3
+
+    # plot overdensity constrast
+    fig, axs = plt.subplots(2, 2)
+    axs[0,0].imshow(delta[nc//2,:,:])
+    axs[0,0].set_title('Initial white noise')
 
 
+    axs[1, 0].imshow(delta_new[nc // 2, :, :])
+    axs[1, 0].set_title(r'Overensity contrast at z = 0, $\sigma_8 =$ '+str(np.std(delta_new).round(2)))
+
+    # Check Spectrum (and so the units !)
+
+    xref, yref = readtxt('pk_bbks.txt')
+    axs[0,1].plot(xref, yref, color='red')
+
+    distances, _ = np.unique(kMpc, return_inverse=True)
+    Pk = np.bincount(_, weights=np.abs(P_BKKS.ravel())) / np.bincount(_)
+    axs[0, 1].scatter(distances, Pk, marker='+',color = 'blue')
+    nPk = np.bincount(_, weights=np.abs(np.multiply(P_BKKS,abs(delta_k)**2).ravel()))/np.bincount(_)
+    axs[0,1].scatter(distances, nPk, marker = '+',color = 'green')
+
+    axs[0,1].legend(['Reference', 'Non noisy mine', 'Noisy Mine'])
+    axs[0,1].semilogy()
+    axs[0,1].semilogx()
+    axs[0,1].set_xlim([1e-5,1e2])
+    axs[0,1].grid()
+    axs[0,1].set_title('Induced Spectrum')
+    axs[0,1].set_xlabel('Wave number '+r'$k$ $(Mpc^{-1}$)')
+    axs[0,1].set_ylabel(r'$P(k)$')
+    # plt.show()
+
+    # Computing correlation. # NE PAS TOUT CALCULER
+    val = {}
+    n =1
+    for i1 in range(nc):
+        for i2 in range(nc):
+            for j1 in range(nc):
+                for j2 in range(nc):
+                    for k1 in range(nc):
+                        for k2 in range(nc):
+                            ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
+                            try:
+                                val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
+                            except KeyError:
+                                val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
+
+    #     # Computing correlation. # NE PAS TOUT CALCULER
+#     val = {}
+#     n =1
+    #   points = np.random.randint(0,nc,size = (2000,6))
+#     for pair in points:
+        #   i1,i2,j1,j2,k1,k2 = pair
+#         ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
+#         try:
+#             val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
+#         except KeyError:
+#             val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
+
+    X = []
+    Xsi = []
+    for key in val.keys():
+        if len(val[key]) > nc**2/2:
+            Xsi.append(np.mean(val[key])) #biased correlation estimation,
+            X.append(np.sqrt(key) * dx)
+        # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
+    # plt.scatter(X,Xsi,linewidths=0.05,color = 'red')
+    axs[1,1].set_ylabel('Correlation function estimation')
+    axs[1,1].set_xlabel('Radial distance (Mpc)')
 
 
-#correlation 2D along an axe (delta x delta y)
-# x = np.linspace(0,N-1,N,dtype = int)
-# y = x
-# # plt.contourf(x,y,sqpr,2)
-# z = np.array([[sqpr[elx,elx]*sqpr[ely,ely] for ely in y] for elx in x])
-# x,y = np.meshgrid(x,y)
-# plt.contourf(x,y,z,10)
-# plt.colorbar()
-# plt.show()
+    # Correlation bins
+    nbins = 50
+    beginbins = np.linspace(0,np.max(X),nbins)
+    bins = []
+    stdbins = []
+    for i in range(nbins-1):
+        tempbin = []
+        for j in range(len(X)):
+            if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
+                tempbin.append(Xsi[j])
+        bins.append(np.mean(tempbin))
+        stdbins.append(np.std(tempbin))
+    # plt.scatter(beginbins[:-1]+0.5*np.max(X)/nbins,bins,color = 'blue',marker = '+')
+    axs[1,1].errorbar(beginbins[:-1]+0.5*np.max(X)/nbins,bins, yerr=stdbins,ecolor= 'red')
 
-##### 3D fft
-# N = 200
-# r = np.random.normal(0, 1, size= (N,N,N)) #200x200 Mpc box
-# delta_r = 100 #Mpc ie entre 2 points on met 100Mpc
-# delta_k = 1/delta_r # à corriger avec un 2pi ?
-# R = np.fft.fftn(r)
-# K = np.sqrt(np.array([[(k1*delta_k)**2+(k2*delta_k)**2 for k2 in range(N)] for k1 in range(N)]))
-# sqP = np.sqrt(initial_Power_Spectrum_BKKS(K))
-# sqPR = np.multiply(sqP,K)
-# sqpr = np.fft.ifftn(r).real
-# print(np.max(sqpr))
-#
+## Reference correlation
+    xref, yref = readtxt('xsi.txt')
+    axs[1,1].scatter(xref, yref,linewidths=0.05,color = 'green')
+    axs[1,1].legend(['Ref','Mine'])
 
-# Il faudra trouver le bon module pour afficher une isosurface en 3D
-
-
-#     Z = np.array([[temp.projected_HMF(np.power(10,M),z)*(np.pi/180)**2 for M in X] for z in Y])
-#     X, Y = np.meshgrid(X, Y)
-#     fig, ax = plt.subplots(subplot_kw=dict(projection='3d'))
-#     surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-#                            linewidth=0, cmap = cm.gnuplot)
+    plt.show()
 
 
 
-#check spectrum:
-# # P = np.abs(np.fft.fftn(sqpr))**2
-# plt.scatter(K,sqPR)
-# plt.xlim([1e-5,1e-2])
-# plt.ylim([1e-2,1e5])
-# plt.semilogx()
-# plt.semilogy()
-# plt.show()
+
+
+
+
+
+
+
+#==================================
+if __name__ == "__main__":
+#==================================
+
+    main()
