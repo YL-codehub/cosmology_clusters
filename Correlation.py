@@ -1,88 +1,117 @@
-import matplotlib.pyplot as plt
-import scipy.stats as st
-import numpy as np
-import math as m
+from numpy.linalg.linalg import norm
 import Cosmological_tools as cosmo
+import scipy.optimize as opt
+import numpy as np
+# import dataCorrelation as dC
+import csv
+import matplotlib.pyplot as plt
+import scipy.integrate as intg
 
-def random_Ball(radius, n, Sig = np.identity(3)):
-    C = st.multivariate_normal(cov = Sig).rvs(size=n)
-    U = st.uniform().rvs(size = n)
-    U = radius*U**(1/3)
-    S = (U*(C.T/np.linalg.norm(C,axis=1))).T
-    return(S)
 
-def plotDraw(N,radius):
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
+def readtxt(file):
+    X = []
+    Y = []
+    with open(file, newline='\n') as csvfile1:
+        page1 = csv.reader(csvfile1, quotechar=' ')
+        for Row in page1:
+            a = Row[0].split()
+            if len(a)<=2:
+                X.append(float(a[0]))
+                Y.append(float(a[1]))
+    return(X,Y)
 
-    # draw sphere
-    u, v = np.mgrid[0:2 * np.pi:50j, 0:np.pi:50j]
-    x = radius*np.cos(u) * np.sin(v)
-    y = radius*np.sin(u) * np.sin(v)
-    z = radius*np.cos(v)
 
-    # alpha controls opacity
-    ax.plot_surface(x, y, z, color="g", alpha=0.3)
+def plot_likelihood(r,xsi,O,S,std):
+    '''Xsi(r) = fourier^-1{spectrum) on xsi(r) data points 
+    (usually coming from Landy and Szaslay estimator).'''
+    universe = cosmo.Cosmology()
+    xsi = np.array([xsi])
+    std = np.array(std)
+    # Sigma = np.eye(len(xsi[0]))
+    Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
+    np.fill_diagonal(Sigma,std**2)
+    invSig = np.linalg.inv(Sigma)
 
-    #draw random points:
-    random = random_Ball(radius,N)
-    for coords in random:
-        ax.scatter(*coords,marker = 'o')
+    def loglikelihood(parameters):
+        print(parameters)
+        universe.Om = parameters[0]
+        universe.sigma8 = parameters[1]
+        universe.update()
+        f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+        xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in r]])
+        return -np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
+        
+    Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
+        # np.savetxt('countsresultZ',Z)
+        # np.savetxt('countsresultO',O)
+        # np.savetxt('countsresultS',S)
 
-    ax.set_xlabel('X-axis')
-    ax.set_ylabel('Y-axis')
-    ax.set_zlabel('Z-axis')
+    a = np.argmax(Z)
+    print('Omega_m :', O[a % len(S)])
+    print('Sigma :', S[a // len(S)])
+        #
+    X, Y = np.meshgrid(O, S)
+    Z = np.exp(Z - Z.max())
+    Z = Z / Z.sum()
+        # #
+        # t = np.linspace(0, Z.max(), 1000)
+        # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+        # f = interpolate.interp1d(integral, t)
+        # t_contours = f(np.array([0.95, 0.68]))
+        # plt.contour(X, Y, Z, t_contours)
+        # plt.colorbar()
+        # plt.scatter(O[a % len(S)], S[a // len(S)])
 
-    ax.set_title('Points in a sphere')
+    
+    ax1 = plt.subplot(121)
+    ax1.contourf(X, Y, Z)
+    ax1.set_xlabel(r'$\Omega_m$')
+    ax1.set_ylabel(r'$\sigma_8$')
 
+    ## Plot effective correlation versus data
+    ax2 = plt.subplot(122)
+    #ref
+    xref, yref = readtxt('xsi.txt')
+    ax2.plot(xref, yref,color = 'green')
+    #data 
+    ax2.errorbar(r,xsi.T, yerr=std,ecolor= 'red')
+    # refined
+    universe.Om =  O[a % len(S)]
+    universe.sigma8 = S[a // len(S)]
+    universe.update()
+    f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+    xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in r]])
+    ax2.plot(r,xsi[0], color = 'red')
+    ax2.plot(r,xsi_model[0], color = 'blue',linestyle = '--')
+    ax2.legend(['Theoretical','Data','Refined'])
+    ax2.set_xlabel('Radial distance (Mpc)')
+    ax2.set_ylabel('Correlation function')
     plt.show()
 
-# plotDraw(1000,2)
 
-# Landy and Szaslay estimator for correlation data
+###########################################################
+## Verifications :
+#####################theoretical correlation###############
 
-def cart2sph(x,y,z):
-    '''from 3D cartesian coordinates to spherical ones'''
-    XsqPlusYsq = x**2 + y**2
-    r = m.sqrt(XsqPlusYsq + z**2)               # r
-    elev = m.atan2(z,m.sqrt(XsqPlusYsq))     # lambda
-    az = m.atan2(y,x)                           # phi
-    return r, elev, az # rad
+# universe = cosmo.Cosmology()
+# # Ref :
 
-def cart2sphA(pts):
-    '''list of 3D cartesian coordinates to list of spherical geographic ones'''
-    return np.array([cart2sph(x,y,z) for x,y,z in pts])
 
-def distanceAB_spherical(A,B):
-    return(np.sqrt(abs(A[0]**2+B[0]**2-2*A[0]*B[0]*(np.cos(A[1])*np.cos(B[1])*np.cos(A[2]-B[2])+np.sin(A[1])*np.sin(B[1])))))
+# # Analytical fourier⁻1
+# f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+# y = [intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in xref]
 
-def number_Pairs(Data1, Data2, rmin, rmax):
-    '''number of pairs Data1(list of spherical coordinates) x Data2 (idem) with a mutual distance betw rmin (strictly) and rmax'''
-    counts = 0
-    for elt1 in Data1:
-        for elt2 in Data2:
-            r = distanceAB_spherical(elt1,elt2)
-            if r >= rmin and r <= rmax:
-                counts+=1
-    return(counts)
+# plt.plot(xref, y,color = 'blue',linestyle = '--')
+# plt.legend(['Ref','Mine'])
+# plt.show()
 
-def CorrelationLS(r,dr,Data, rData):
-    '''correlation in bin r-dr/2,r+dr/2 in Data (list of spherical coordinates), with the comparison to rData random mapping.
-    Landy and Szaslay estimator formula is used.'''
-    N = len(Data)
-    rmin, rmax = r-dr/2, r+dr/2
-    DD = number_Pairs(Data,Data,rmin,rmax)
-    RD = number_Pairs(Data,rData,rmin,rmax)
-    RR = number_Pairs(rData,rData,rmin,rmax)
-    print(DD,RD,RR)
-    return((DD-2*RD+RR)/RR)
+#####################likelihood plot###############
 
-#
-rData1 = random_Ball(10,500)
-rData2 = random_Ball(10,500)
-# # print(CorrelationLS(5,0.01,rData1,rData2))
-#
-x = np.linspace(1,10, 19)
-y = [CorrelationLS(el,0.01,rData1,rData2) for el in x]
-plt.plot(x,y)
-plt.show()
+# plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
+
+
+x = np.loadtxt('binsCorr')
+y = np.loadtxt('Corr')
+std = np.loadtxt('stdCorr')
+
+plot_likelihood(x, y, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5),std)
