@@ -172,7 +172,7 @@ class Catalog:
             res = 0
             # self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=parameters[0], Omega_r=Omega_r, Omega_v=Omega_v,
             #                                 Omega_T=Omega_T, sigma_8=parameters[1], n_s=n_s)
-            self.universe.Om = parameters[0]
+            self.universe.Om = parameters[0] ## NOPE DON'T USE THIS BUT RATHER JUST THE PREVIOUS ONE
             self.universe.sigma8 = parameters[1]
             self.universe.update()
             #oups je crois qu'il faut aussi relancer le calcul d'As ducoup...

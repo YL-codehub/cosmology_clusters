@@ -6,12 +6,12 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 import scipy.integrate as intg
-
+import scipy.interpolate 
 
 def readtxt(file):
     X = []
     Y = []
-    with open(file, newline='\n') as csvfile1:
+    with open('heavy files/'+file, newline='\n') as csvfile1:
         page1 = csv.reader(csvfile1, quotechar=' ')
         for Row in page1:
             a = Row[0].split()
@@ -34,11 +34,9 @@ def plot_likelihood(r,xsi,O,S,std):
 
     def loglikelihood(parameters):
         print(parameters)
-        universe.Om = parameters[0]
-        universe.sigma8 = parameters[1]
-        universe.update()
+        universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
         f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-        xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in r]])
+        xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
         return -np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
         
     Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
@@ -53,18 +51,16 @@ def plot_likelihood(r,xsi,O,S,std):
     X, Y = np.meshgrid(O, S)
     Z = np.exp(Z - Z.max())
     Z = Z / Z.sum()
-        # #
-        # t = np.linspace(0, Z.max(), 1000)
-        # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-        # f = interpolate.interp1d(integral, t)
-        # t_contours = f(np.array([0.95, 0.68]))
-        # plt.contour(X, Y, Z, t_contours)
-        # plt.colorbar()
-        # plt.scatter(O[a % len(S)], S[a // len(S)])
-
-    
+    #     # #
+    t = np.linspace(0, Z.max(), 1000)
+    integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+    f = scipy.interpolate.interp1d(integral, t)
+    t_contours = f(np.array([0.95, 0.68]))
+ 
     ax1 = plt.subplot(121)
-    ax1.contourf(X, Y, Z)
+    # ax1.contourf(X, Y, Z)
+    ax1.scatter(O[a % len(S)], S[a // len(S)])
+    ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
     ax1.set_ylabel(r'$\sigma_8$')
 
@@ -72,20 +68,22 @@ def plot_likelihood(r,xsi,O,S,std):
     ax2 = plt.subplot(122)
     #ref
     xref, yref = readtxt('xsi.txt')
-    ax2.plot(xref, yref,color = 'green')
+    ax2.plot(xref, yref,color = 'black',linewidth = 1)
     #data 
-    ax2.errorbar(r,xsi.T, yerr=std,ecolor= 'red')
+    ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
     # refined
     universe.Om =  O[a % len(S)]
     universe.sigma8 = S[a // len(S)]
     universe.update()
     f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-    xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in r]])
-    ax2.plot(r,xsi[0], color = 'red')
-    ax2.plot(r,xsi_model[0], color = 'blue',linestyle = '--')
-    ax2.legend(['Theoretical','Data','Refined'])
+    xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+    ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
+    ax2.plot(r,xsi_model[0], color = 'blue',linestyle = '--',linewidth = 1)
+    ax2.legend(['Theoretical','Refined','Data'])
     ax2.set_xlabel('Radial distance (Mpc)')
     ax2.set_ylabel('Correlation function')
+    ax2.set_xlim([15,225])
+    ax2.set_ylim([-0.025,0.2])
     plt.show()
 
 
@@ -109,9 +107,10 @@ def plot_likelihood(r,xsi,O,S,std):
 
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
-
-x = np.loadtxt('binsCorr')
-y = np.loadtxt('Corr')
-std = np.loadtxt('stdCorr')
-
-plot_likelihood(x, y, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5),std)
+##################
+x = np.loadtxt('heavy files/binsCorr.txt')
+y = np.loadtxt('heavy files/Corr.txt')
+# x, y = readtxt('xsi.txt') #testing likelihood algorithm
+std = np.loadtxt('heavy files/stdCorr.txt')
+# std = [0.01]*len(y) #testing likelihood algorithm
+plot_likelihood(x, y, np.linspace(0.2,0.4,7),np.linspace(0.7,0.9,7),std)

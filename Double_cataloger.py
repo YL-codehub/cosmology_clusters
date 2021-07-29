@@ -77,7 +77,7 @@ class doubleCatalog:
                 mean_poisson = self.universe.expected_Counts(Mmin[i],Mmax[i],zmin[j],zmax[j],rad2 = 4*np.pi) # per srad
                 N = np.random.poisson(mean_poisson)
                 def pdf(z,dz = self.z_intervals):
-                    '''3D probability probability in a shell [z,z+dz'''
+                    '''3D probability probability in a shell [z,z+dz]'''
                     b = (delta_new2>=-1)*(1+delta_new2) #method 1
                     b = b/np.sum(b)
                     return b

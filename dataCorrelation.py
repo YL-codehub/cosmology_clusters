@@ -248,20 +248,20 @@ import nbodykit.cosmology.cosmology as cosm
 
 print('Reading and compiling catalog...')
 
-Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1.txt')
+Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1MC1.txt')
 n = Catalog.shape[0] #counts number
 rmax = np.max(Catalog[:,0])
 data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
 # # # # # #  random catalog creation
 print('Creating randomized catalog...')
-print('...with Dplus correction...')
+# print('...with Dplus correction...')
 
 
 rand_n = 10*n
 
 randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
-print('...and in spherical coordinates...')
+# print('...and in spherical coordinates...')
 r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
 random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
@@ -289,9 +289,13 @@ Cov = np.cov(XsisMC)
 # plt.imshow(np.corrcoef(XsisMC))
 # plt.colorbar()
 # plt.show()
-plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+# plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
 ## http://www.python-simple.com/python-matplotlib/errorBars.php
 plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
+
+# np.savetxt('heavy files/binsCorr.txt',r)
+# np.savetxt('heavy files/Corr.txt',xsi)
+# np.savetxt('heavy files/stdCorr.txt',np.sqrt(np.diag(Cov)))
 
 xref, yref = readtxt('xsi.txt')
 xref,yref = np.array(xref), np.array(yref)
@@ -305,7 +309,6 @@ plt.legend(['Mine','Ref'])
 try:
     plt.subplot(122)
     fc = interpolate.interp1d(r,xsi)
-    print(np.max(r),np.max(xref))
     xsi_2 = fc(xref)
     plt.plot(xref,np.log(1+xsi_2)/(np.log(1+yref)))
     plt.xlabel('Radial distance (Mpc)')
