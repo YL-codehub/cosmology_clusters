@@ -13,7 +13,7 @@ import scipy.optimize as opt
 def readtxt(file):
     X = []
     Y = []
-    with open(file, newline='\n') as csvfile1:
+    with open('heavy files/'+file, newline='\n') as csvfile1:
         page1 = csv.reader(csvfile1, quotechar=' ')
         for Row in page1:
             a = Row[0].split()
@@ -237,7 +237,7 @@ def random_Ball(radius, n, Sig = np.identity(3), mode = 'sphere',finv = None):
         C = C*radius/maxCoord
         return C
     elif mode == 'test':
-        C = ((radius*2*(st.uniform().rvs(size = (4*n,3))-0.5))//20)*20
+        C = np.round((radius*2*(st.uniform().rvs(size = (4*n,3))-0.5))/20)*20
         sphereTruth = (np.linalg.norm(C,axis = 1)<=radius)
         C = C[sphereTruth,:]
         return C[:n,:]
@@ -248,7 +248,7 @@ import nbodykit.cosmology.cosmology as cosm
 
 print('Reading and compiling catalog...')
 
-Catalog = np.loadtxt('DrawcatalogComoving.txt')
+Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1.txt')
 n = Catalog.shape[0] #counts number
 rmax = np.max(Catalog[:,0])
 data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
@@ -258,7 +258,7 @@ print('Creating randomized catalog...')
 print('...with Dplus correction...')
 
 
-rand_n = 1*n
+rand_n = 10*n
 
 randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
 print('...and in spherical coordinates...')
@@ -266,11 +266,9 @@ r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalo
 random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
 print('Computing Landy and Szaslay estimator...')
-a,b = 20,120
-steps = 5
+a,b = 15,225
+steps = 10
 bins = np.linspace(a,b,int((b-a)/steps)+1)
-# bins *= 0.7 #nobdykit is in h⁻1Mpc
-# C = cosm.Cosmology(h=0.7)
 
 class FakeCosmo(object):
             def comoving_distance(self, z):
@@ -282,29 +280,78 @@ Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = b
 print('Displaying results...')
 plt.subplot(121)
 res = Xsi.corr.data
-print(res)
-print(Xsi.corr['r'])
-print(Xsi.corr['corr'])
 r = [el[1] for el in res]
 xsi = [el[0] for el in res]
-plt.plot(r,xsi,linestyle = '--',color = 'blue')
+
+## add errorbars thanks to MONTECARLO preliminary work:
+XsisMC = np.loadtxt('heavy files/XSIs.txt').T
+Cov = np.cov(XsisMC)
+# plt.imshow(np.corrcoef(XsisMC))
+# plt.colorbar()
+# plt.show()
+plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+## http://www.python-simple.com/python-matplotlib/errorBars.php
+plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
 
 xref, yref = readtxt('xsi.txt')
 xref,yref = np.array(xref), np.array(yref)
-selection = (xref>=np.min(r))&(xref<=np.max(r))
+selection = (xref>=19)&(xref<=r[-1])
 xref,yref = xref[selection], yref[selection]
 plt.xlabel('Radial distance (Mpc)')
 plt.ylabel(r'$\xi(r)$')
-plt.plot(xref, yref,color = 'red')
+plt.plot(xref, yref,color = 'black')
 plt.legend(['Mine','Ref'])
 
-plt.subplot(122)
-fc = interpolate.interp1d(r,xsi)
-xsi_2 = fc(xref)
-plt.plot(xref,xsi_2/yref)
-plt.xlabel('Radial distance (Mpc)')
-plt.ylabel(r'$\xi_{mine}(r)-\xi_{ref}(r)$')
+try:
+    plt.subplot(122)
+    fc = interpolate.interp1d(r,xsi)
+    print(np.max(r),np.max(xref))
+    xsi_2 = fc(xref)
+    plt.plot(xref,np.log(1+xsi_2)/(np.log(1+yref)))
+    plt.xlabel('Radial distance (Mpc)')
+    plt.ylabel(r'$log(1+\xi_{mine}(r))/log(1+\xi_{ref}(r))$')
+except:
+    print('oups')
 
 plt.show()
 
-#mpiexec -np 4 python dataCorrelation
+# # # mpiexec -np 4 python dataCorrelation
+
+
+###################MonteCarlo##################
+
+# a,b = 15,225
+# steps = 10
+# bins = np.linspace(a,b,int((b-a)/steps)+1)
+
+# class FakeCosmo(object):
+#             def comoving_distance(self, z):
+#                 return z
+# C = FakeCosmo()
+# XSIS = []
+
+# for i in range(20):
+#     print('Iteration: ',i)
+#     Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1MC'+str(i)+'.txt')
+#     n = Catalog.shape[0] #counts number
+#     rmax = np.max(Catalog[:,0])
+#     data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
+
+#     rand_n = 4*n
+
+#     randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
+#     r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
+#     random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
+
+
+#     Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
+
+#     res = Xsi.corr.data
+#     r = [el[1] for el in res]
+#     xsi = [el[0] for el in res]
+#     print(xsi)
+#     XSIS.append(xsi)
+
+# np.savetxt('heavy files/XSIs.txt',XSIS)
+
+

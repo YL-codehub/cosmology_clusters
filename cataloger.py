@@ -117,7 +117,7 @@ def create_catalog_threshold(delta_new2,dx = 20, threshold = 1.686, plot = True)
         # cbar.set_label('Longitude')
         plt.show()
 
-def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True):
+def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCarloIndex = 0):
     '''from density 3d numpy array (box) to correlated simple catalog for correlation (in a text file). 
    Density field is the probability field and we make a draw in there.
     dx(Mpc) is the physical length of a pixel in the box. 
@@ -191,7 +191,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True):
     print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
     print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
-    np.savetxt('DrawcatalogComoving.txt',selected)
+    np.savetxt('heavy files/DrawcatalogComovingMeth1MC'+str(MonteCarloIndex)+'.txt',selected)
 
     print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -244,8 +244,19 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True):
 
 #######################cataloger draw###########################
 
+# nc = 256
+# dx = 20
+# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
+# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+# print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
+
+#######################cataloger MonteCarlo###########################
+
 nc = 256
 dx = 20
-delta_new2 = np.fromfile('boxnc'+str(nc)+'dx'+str(int(dx)))
+delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
 delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
+
+for i in range(20):
+    print('Iteration: ',i)
+    create_catalog_draw(delta_new2,dx = dx, number = 60000,plot = False,MonteCarloIndex=i)
