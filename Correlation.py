@@ -61,13 +61,12 @@ def plot_likelihood(r,xsi,O,S,std):
         #
     X, Y = np.meshgrid(O, S)
     Z = np.exp(Z - Z.max())
-    print(Z)
-    print(Z.sum())
 
     Z = Z / Z.sum()
     #     # #
     t = np.linspace(0, Z.max(), 1000)
     integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+    # print(integral)
     f = scipy.interpolate.interp1d(integral, t)
     t_contours = f(np.array([0.95, 0.68]))
 
@@ -92,6 +91,11 @@ def plot_likelihood(r,xsi,O,S,std):
     xsi_model = integralXsi(r,universe)
     ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
     ax2.plot(r,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
+
+    # universeRef = cosmo.Cosmology()
+    # xsi_ref = integralXsi(r,universeRef)
+    # ax2.plot(r, xsi_ref,color = 'red',linewidth = 1) #ok equivalent to theory
+
     ax2.legend(['Theoretical','Refined','Data'])
     ax2.set_xlabel('Radial distance (Mpc)')
     ax2.set_ylabel('Correlation function')
@@ -121,11 +125,29 @@ def plot_likelihood(r,xsi,O,S,std):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-x = np.loadtxt('heavy files/binsCorr')
-y = np.loadtxt('heavy files/Corr')
+x = np.loadtxt('heavy files/binsCorrnew2.txt')
+y = np.loadtxt('heavy files/Corrnew2.txt')
 # x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
-# x,y = x[16:16+18], y[16:16+18]
-std = np.loadtxt('heavy files/stdCorr')
+# it = 24
+# x,y = x[it:36],y[it:36]
+# x,y = x[16:16+17], y[16:16+17]
+# noise = 0.01*2*(np.random.uniform(size = (1,len(x)))-0.5)
+# noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.8),size = (1,len(x)))
+# noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.5),size = (1,len(x)))
+# noise = np.hstack([noise[:,:6]/4,noise[:,6:]])
+# y = np.array([y])+noise
+# y = y[0]
+std = np.loadtxt('heavy files/stdCorrnew2.txt')
 # std = [0.05-0.001*i for i in range(len(y))]#[0.01]*len(y) #testing likelihood algorithm
-# std = [0.01]*len(y)
-plot_likelihood(x, y, np.linspace(0.25,0.35,25),np.linspace(0.75,0.85,25),std)
+# std = 0.08*np.power(np.abs(y),0.8)#[0.01]*len(y)
+# std = 0.08*np.power(np.abs(y),0.5)#[0.01]*len(y)
+# std = np.hstack([std[:6]/4,std[6:]])
+plot_likelihood(x, y, np.linspace(0.2,0.4,10),np.linspace(0.7,0.9,10),std)
+
+
+# Conclusions :
+# - data = theory + std data ~ pas mal ==> des mauvais points qu'il fallait enlever
+# - data = data + std réduite ~ pas mal ==> les erreurs sont trop grandes, de façon globale (cela fait de trop grands contours), 
+# en particulier sur les les petits Mpc. 
+# - lorsque les barres sont trop grandes, la likelihood a de trop petites variations, et la grille est infinement insuffisante
+# ---> actuellement new2 est pas mal car j'ai enlevé les abberations (3-4 points), et si on divise par un facteur constant les incertitudes les contours sont mêmes très bons

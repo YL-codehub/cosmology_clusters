@@ -72,16 +72,6 @@ class doubleCatalog:
         self.zmax = None
         self.counts = None # z x M matrix
 
-    def Bias_MoWhite(self,z,M):
-        '''returns Mo & WHite bias for a given z x M array'''
-        delta_c = 1.686
-        delta_1 = np.array([delta_c *(1+z)])
-        sig0 = np.array([self.universe.initial_sigma(M)])
-        D = np.array([self.universe.Dplus(z,mode = 'array')])
-        sig = np.kron(sig0,D.T)
-        nu_1 = np.kron(1/sig0,delta_1.T/D.T)
-        Bias = 1+(np.power(nu_1,2)-1)/delta_1.T
-        return(Bias)
 
     def Generate(self, Minf = 5e14, Msup = 1e16, zinf = 0, zsup = 3):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
@@ -98,7 +88,7 @@ class doubleCatalog:
         # N = np.random.poisson(means_poisson)
 
         nbin = 1
-        self.counts = np.zeros((len(self.zmin),len(self.zmax)))
+        self.counts = np.zeros((len(self.zmin),len(self.Mmin)))
         for i in range(len(self.Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
             for j in range(len(self.zmin)): # bin [zm, zm+z_interval]
                 ## Mean counts in the bin thanks to theory
@@ -128,7 +118,7 @@ class doubleCatalog:
         a_file = open(name, "rb")
         self.bins = pk.load(a_file)
 
-    def create_catalog_draw(self,delta_new2,dx = 20, number = 60000, plot = True):
+    def create_catalog_draw(self,delta_new2,dx = 20, plot = True):
         '''from density 3d numpy array (box) to correlated simple catalog for correlation (in a text file). 
     Density field is the probability field and we make a draw in there.
         dx(Mpc) is the physical length of a pixel in the box. 
@@ -162,19 +152,38 @@ class doubleCatalog:
         print('Selecting...')
         delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
+        def Bias_MoWhite(z,M):
+            '''returns Mo & WHite bias for a given z x M array'''
+            delta_c = 1.686
+            # delta_1 = np.array([delta_c *(1+z)])
+            delta_1 = delta_c*(1+z)
+            # sig0 = np.array([self.universe.initial_sigma(M)])
+            sig0 = self.universe.initial_sigma(M,mode = 'quad')
+            # D = np.array([self.universe.Dplus(z,mode = 'array')])
+            D = g(z)
+            # sig = np.kron(sig0,D.T)
+            sig = sig0 * D
+            # nu_1 = np.kron(1/sig0,delta_1.T/D.T)
+            nu_1 = delta_1/sig
+            # Bias = 1+(np.power(nu_1,2)-1)/delta_1.T
+            Bias = 1+(np.power(nu_1,2)-1)/delta_1
+            return(Bias)
 
         print('Drawing points...')
         def Shellpdf(z,dz = self.z_intervals,mean_M = 1e14):
             '''3D probability probability'''
-            Bias = self.Bias_MoWhite(Redshifts,np.ravel([mean_Mass]))
-            b = (z-dz/2<=Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
+            # Bias = Bias_MoWhite(Redshifts,np.ravel([mean_M]))
+            Bias = Bias_MoWhite(Redshifts,mean_M)
+            b = (z-dz/2<=Redshifts)*(Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
             b = b/np.sum(b)
             return b
 
-        def rejection_method(n,PDf = pdf()):
+        def rejection_method(n,PDf):
             '''choose n points with rejection sampling method for a given pdf'''
             M = np.max(PDf)
-            N = int(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
+            N = int(np.nan_to_num(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi)) #because many points go in the bin + we points out of the sphere+points twice-drew
+            N = np.min([N,3000000]) #un peu sombre
+            #print('N:',N)
             U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
             H = M*st.uniform().rvs(size=N) 
             selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
@@ -185,12 +194,14 @@ class doubleCatalog:
             Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
             return Uok[:np.min([len(Uok),n]),:]
 
-        points = np.zeros((1,3))
+        points = np.zeros((1,3),dtype=int)
         for i in range(len(self.zmin)):
             Mdistrib = self.counts[i]
-            n = np.sum(Mdistrib)
+            n = int(np.sum(Mdistrib))
+            print("objects to draw in the shell: ",n)
             meanM = np.sum(Mdistrib*(self.Mmin+self.Mmax)/2)/n
-            newpoints = rejection_method(n,PDf = Shellpdf((self.zmin+self.zmax)/2),mean_M = meanM)
+            newpoints = rejection_method(n,PDf = Shellpdf((self.zmin[i]+self.zmax[i])/2,mean_M = meanM))
+            print("effective number of draw: ",newpoints.shape[0])
             points = np.vstack([points,newpoints])
         points = points[1:,:]
 
@@ -208,7 +219,7 @@ class doubleCatalog:
         print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
         print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
-        np.savetxt('thresholdcatalog4Comoving.txt',selected)
+        np.savetxt('catalogCorrelated.txt',selected)
 
         print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -231,27 +242,30 @@ class doubleCatalog:
 ## Verifications :
 #######################cataloger draw###########################
 
-# nc = 256
-# dx = 20
-# delta_new2 = np.fromfile('boxnc'+str(nc)+'dx'+str(int(dx)))
-# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+nc = 256
+dx = 20
+delta_new2 = np.fromfile("heavy files/"+'boxnc'+str(nc)+'dx'+str(int(dx)))
+delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
 # print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
 
 #######################Mo & White Bias###########################
 temp = doubleCatalog()
 temp.Generate()
+print(temp.counts.shape)
+temp.create_catalog_draw(delta_new2)
+
 # res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
 
-# #ref
-# xref, yref = readtxt('Vérifications fonctions/biasM.txt')
-# plt.plot(xref, yref,color = 'black',linewidth = 1)
-# y = temp.Bias_MoWhite(np.ravel([1]),np.ravel(xref))[0]
-# print(y)
-# plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
-# plt.legend(['Reference','Mine'])
-# plt.xlabel('Mass (1e15 solar masses)')
-# plt.ylabel('Mo and White bias at z = 1')
-# plt.show()
+# # # # #ref
+# # # # xref, yref = readtxt('Vérifications fonctions/biasM.txt')
+# # # # plt.plot(xref, yref,color = 'black',linewidth = 1)
+# # # # y = temp.Bias_MoWhite(np.ravel([1]),np.ravel(xref))[0]
+# # # # print(y)
+# # # # plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
+# # # # plt.legend(['Reference','Mine'])
+# # # # plt.xlabel('Mass (1e15 solar masses)')
+# # # # plt.ylabel('Mo and White bias at z = 1')
+# # # # plt.show()
 #
 # xref, yref = readtxt('Vérifications fonctions/biasz.txt')
 # plt.plot(xref, yref,color = 'black',linewidth = 1)
