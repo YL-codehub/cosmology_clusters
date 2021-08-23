@@ -41,7 +41,7 @@ def plot_likelihood(r,xsi,O,S,std):
         F = univ.initial_Power_Spectrum_BKKS(K, mode='np') * np.sin(K * X) / (K * X) * K ** 2 / (2 * np.pi ** 2)
         xsi_model = np.sum(F, axis=1) * dK
         return(xsi_model)
-    print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
+    # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
     def loglikelihood(parameters):
         print(parameters)
         universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
@@ -61,17 +61,20 @@ def plot_likelihood(r,xsi,O,S,std):
         #
     X, Y = np.meshgrid(O, S)
     Z = np.exp(Z - Z.max())
+    print(Z)
+    print(Z.sum())
+
     Z = Z / Z.sum()
     #     # #
-    # t = np.linspace(0, Z.max(), 1000)
-    # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-    # f = scipy.interpolate.interp1d(integral, t)
-    # t_contours = f(np.array([0.95, 0.68]))
+    t = np.linspace(0, Z.max(), 1000)
+    integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+    f = scipy.interpolate.interp1d(integral, t)
+    t_contours = f(np.array([0.95, 0.68]))
 
     ax1 = plt.subplot(121)
-    ax1.contourf(X, Y, Z)
+    # ax1.contourf(X, Y, Z)
     ax1.scatter(O[a % len(S)], S[a // len(S)])
-    # ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
+    ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
     ax1.set_ylabel(r'$\sigma_8$')
 
@@ -93,7 +96,7 @@ def plot_likelihood(r,xsi,O,S,std):
     ax2.set_xlabel('Radial distance (Mpc)')
     ax2.set_ylabel('Correlation function')
     ax2.set_xlim([15,225])
-    ax2.set_ylim([-0.025,0.2])
+    ax2.set_ylim([-0.025,0.20])
     plt.show()
 
 
@@ -118,9 +121,11 @@ def plot_likelihood(r,xsi,O,S,std):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-# x = np.loadtxt('heavy files/binsCorr.txt')
-# y = np.loadtxt('heavy files/Corr.txt')
-x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
-# std = np.loadtxt('heavy files/stdCorr.txt')
-std = [0.01]*len(y) #testing likelihood algorithm
-plot_likelihood(x, y, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5),std)
+x = np.loadtxt('heavy files/binsCorr')
+y = np.loadtxt('heavy files/Corr')
+# x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
+# x,y = x[16:16+18], y[16:16+18]
+std = np.loadtxt('heavy files/stdCorr')
+# std = [0.05-0.001*i for i in range(len(y))]#[0.01]*len(y) #testing likelihood algorithm
+# std = [0.01]*len(y)
+plot_likelihood(x, y, np.linspace(0.25,0.35,25),np.linspace(0.75,0.85,25),std)

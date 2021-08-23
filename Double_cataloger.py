@@ -22,6 +22,18 @@ def convert_sky_to_cartesian_full_angle(r,RA,DEC):
     return(X,Y,Z)
 
 
+def readtxt(file):
+    X = []
+    Y = []
+    with open(file, newline='\n') as csvfile1:
+        page1 = csv.reader(csvfile1, quotechar=' ')
+        for Row in page1:
+            a = Row[0].split()
+            if len(a)<=2:
+                X.append(float(a[0]))
+                Y.append(float(a[1]))
+    return(X,Y)
+
 def radialcomov_to_redshift(r):
     '''Gives Redshift associated to a given comoving radial distance'''
     Cosmo = cosmo.Cosmology() # usual Omega by default
@@ -54,36 +66,49 @@ class doubleCatalog:
         self.z_intervals = z_intervals        # for artificial data use only
         self.bins = {}                       # [ {'Mmin':,'zmin':,'latt':, 'long':, 'counts':}, ...] , a bin is [Mmin,Mmin+M_intervals] x [zmin, zmin+z_intervals]
         self.universe = None
+        self.Mmin = None
+        self.Mmax = None
+        self.zmin = None
+        self.zmax = None
+        self.counts = None # z x M matrix
+
+    def Bias_MoWhite(self,z,M):
+        '''returns Mo & WHite bias for a given z x M array'''
+        delta_c = 1.686
+        delta_1 = np.array([delta_c *(1+z)])
+        sig0 = np.array([self.universe.initial_sigma(M)])
+        D = np.array([self.universe.Dplus(z,mode = 'array')])
+        sig = np.kron(sig0,D.T)
+        nu_1 = np.kron(1/sig0,delta_1.T/D.T)
+        Bias = 1+(np.power(nu_1,2)-1)/delta_1.T
+        return(Bias)
 
     def Generate(self, Minf = 5e14, Msup = 1e16, zinf = 0, zsup = 3):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
         a,b = m.log(Minf, 10), m.log(Msup, 10)
-        self.universe = cosmo.Cosmology(H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
+        self.universe = cosmo.Cosmology()#H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
 
 
-        Mmin = np.power(10, np.linspace(a, b, int((b - a) / self.logM_intervals) + 1))
-        Mmax = Mmin * 10 ** self.logM_intervals
-        zmin = np.linspace(zinf, zsup, int((zsup - zinf) / self.z_intervals) + 1)
-        zmax = zmin + self.z_intervals
+        self.Mmin = np.power(10, np.linspace(a, b, int((b - a) / self.logM_intervals) + 1))
+        self.Mmax = self.Mmin * 10 ** self.logM_intervals
+        self.zmin = np.linspace(zinf, zsup, int((zsup - zinf) / self.z_intervals) + 1)
+        self.zmax = self.zmin + self.z_intervals
 
         # means_poisson = self.universe.expected_Counts(Mmin, Mmax, zmin, zmax, mode = 'superarray')
         # N = np.random.poisson(means_poisson)
 
         nbin = 1
-
-        for i in range(len(Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
-            for j in range(len(zmin)): # bin [zm, zm+z_interval]
+        self.counts = np.zeros((len(self.zmin),len(self.zmax)))
+        for i in range(len(self.Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
+            for j in range(len(self.zmin)): # bin [zm, zm+z_interval]
                 ## Mean counts in the bin thanks to theory
-                mean_poisson = self.universe.expected_Counts(Mmin[i],Mmax[i],zmin[j],zmax[j],rad2 = 4*np.pi) # per srad
+                mean_poisson = self.universe.expected_Counts(self.Mmin[i],self.Mmax[i],self.zmin[j],self.zmax[j],rad2 = 4*np.pi) # per srad
                 N = np.random.poisson(mean_poisson)
-                def pdf(z,dz = self.z_intervals):
-                    '''3D probability probability in a shell [z,z+dz]'''
-                    b = (delta_new2>=-1)*(1+delta_new2) #method 1
-                    b = b/np.sum(b)
-                    return b
+
                 ## Draw a RA and DEC
         #         ## Encode data :
-                self.bins[nbin] = {'Mmin':Mmin[i], 'zmin':zmin[j], 'latt':None, 'long':None, 'counts':N}
+                self.bins[nbin] = {'Mmin':self.Mmin[i], 'zmin':self.zmin[j], 'latt':None, 'long':None, 'counts':N}
+                self.counts[j,i] = N
                 # print(self.bins[nbin])
                 nbin +=1
 
@@ -137,10 +162,12 @@ class doubleCatalog:
         print('Selecting...')
         delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
+
         print('Drawing points...')
-        def pdf():
+        def Shellpdf(z,dz = self.z_intervals,mean_M = 1e14):
             '''3D probability probability'''
-            b = (delta_new2>=-1)*(1+delta_new2) #method 1
+            Bias = self.Bias_MoWhite(Redshifts,np.ravel([mean_Mass]))
+            b = (z-dz/2<=Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
             b = b/np.sum(b)
             return b
 
@@ -158,7 +185,14 @@ class doubleCatalog:
             Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
             return Uok[:np.min([len(Uok),n]),:]
 
-        points = rejection_method(number)
+        points = np.zeros((1,3))
+        for i in range(len(self.zmin)):
+            Mdistrib = self.counts[i]
+            n = np.sum(Mdistrib)
+            meanM = np.sum(Mdistrib*(self.Mmin+self.Mmax)/2)/n
+            newpoints = rejection_method(n,PDf = Shellpdf((self.zmin+self.zmax)/2),mean_M = meanM)
+            points = np.vstack([points,newpoints])
+        points = points[1:,:]
 
         # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev<np.pi/6)&(elev>0)))
         # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev>np.pi/6)&(elev<np.pi/2)))
@@ -197,8 +231,34 @@ class doubleCatalog:
 ## Verifications :
 #######################cataloger draw###########################
 
-nc = 256
-dx = 20
-delta_new2 = np.fromfile('boxnc'+str(nc)+'dx'+str(int(dx)))
-delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
+# nc = 256
+# dx = 20
+# delta_new2 = np.fromfile('boxnc'+str(nc)+'dx'+str(int(dx)))
+# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+# print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
+
+#######################Mo & White Bias###########################
+temp = doubleCatalog()
+temp.Generate()
+# res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
+
+# #ref
+# xref, yref = readtxt('Vérifications fonctions/biasM.txt')
+# plt.plot(xref, yref,color = 'black',linewidth = 1)
+# y = temp.Bias_MoWhite(np.ravel([1]),np.ravel(xref))[0]
+# print(y)
+# plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
+# plt.legend(['Reference','Mine'])
+# plt.xlabel('Mass (1e15 solar masses)')
+# plt.ylabel('Mo and White bias at z = 1')
+# plt.show()
+#
+# xref, yref = readtxt('Vérifications fonctions/biasz.txt')
+# plt.plot(xref, yref,color = 'black',linewidth = 1)
+# y = temp.Bias_MoWhite(np.ravel([xref]),np.ravel([0.1])).T[0]
+# print(y)
+# plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
+# plt.legend(['Reference','Mine'])
+# plt.xlabel('Redshift')
+# plt.ylabel('Mo and White bias at M = 0.1 solar Masses')
+# plt.show()
