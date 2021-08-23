@@ -11,7 +11,7 @@ import scipy.interpolate
 def readtxt(file):
     X = []
     Y = []
-    with open('heavy files/'+file, newline='\n') as csvfile1:
+    with open(file, newline='\n') as csvfile1:
         page1 = csv.reader(csvfile1, quotechar=' ')
         for Row in page1:
             a = Row[0].split()
@@ -32,11 +32,22 @@ def plot_likelihood(r,xsi,O,S,std):
     np.fill_diagonal(Sigma,std**2)
     invSig = np.linalg.inv(Sigma)
 
+    # Array integral mode :
+    def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
+        K = np.array([np.linspace(a, b, n)])
+        dK = (b - a) / n
+        X = np.array([R]).T
+        prod = np.kron(K, X)
+        F = univ.initial_Power_Spectrum_BKKS(K, mode='np') * np.sin(K * X) / (K * X) * K ** 2 / (2 * np.pi ** 2)
+        xsi_model = np.sum(F, axis=1) * dK
+        return(xsi_model)
+    print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
     def loglikelihood(parameters):
         print(parameters)
         universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
-        f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-        xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+        # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+        # xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+        xsi_model = integralXsi(r,universe)
         return -np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
         
     Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
@@ -52,33 +63,32 @@ def plot_likelihood(r,xsi,O,S,std):
     Z = np.exp(Z - Z.max())
     Z = Z / Z.sum()
     #     # #
-    t = np.linspace(0, Z.max(), 1000)
-    integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-    f = scipy.interpolate.interp1d(integral, t)
-    t_contours = f(np.array([0.95, 0.68]))
- 
+    # t = np.linspace(0, Z.max(), 1000)
+    # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
+    # f = scipy.interpolate.interp1d(integral, t)
+    # t_contours = f(np.array([0.95, 0.68]))
+
     ax1 = plt.subplot(121)
-    # ax1.contourf(X, Y, Z)
+    ax1.contourf(X, Y, Z)
     ax1.scatter(O[a % len(S)], S[a // len(S)])
-    ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
+    # ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
     ax1.set_ylabel(r'$\sigma_8$')
 
     ## Plot effective correlation versus data
     ax2 = plt.subplot(122)
     #ref
-    xref, yref = readtxt('xsi.txt')
+    xref, yref = readtxt('Vérifications fonctions/xsi.txt')
     ax2.plot(xref, yref,color = 'black',linewidth = 1)
-    #data 
+    #data
     ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
     # refined
-    universe.Om =  O[a % len(S)]
-    universe.sigma8 = S[a // len(S)]
-    universe.update()
-    f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-    xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+    universe = cosmo.Cosmology(Omega_m=O[a % len(S)],Omega_v=1-O[a % len(S)], sigma_8=S[a // len(S)])
+    # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+    # xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+    xsi_model = integralXsi(r,universe)
     ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
-    ax2.plot(r,xsi_model[0], color = 'blue',linestyle = '--',linewidth = 1)
+    ax2.plot(r,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
     ax2.legend(['Theoretical','Refined','Data'])
     ax2.set_xlabel('Radial distance (Mpc)')
     ax2.set_ylabel('Correlation function')
@@ -108,9 +118,9 @@ def plot_likelihood(r,xsi,O,S,std):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-x = np.loadtxt('heavy files/binsCorr.txt')
-y = np.loadtxt('heavy files/Corr.txt')
-# x, y = readtxt('xsi.txt') #testing likelihood algorithm
-std = np.loadtxt('heavy files/stdCorr.txt')
-# std = [0.01]*len(y) #testing likelihood algorithm
-plot_likelihood(x, y, np.linspace(0.2,0.4,7),np.linspace(0.7,0.9,7),std)
+# x = np.loadtxt('heavy files/binsCorr.txt')
+# y = np.loadtxt('heavy files/Corr.txt')
+x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
+# std = np.loadtxt('heavy files/stdCorr.txt')
+std = [0.01]*len(y) #testing likelihood algorithm
+plot_likelihood(x, y, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5),std)
