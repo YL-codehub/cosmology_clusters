@@ -192,7 +192,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
     # np.savetxt('heavy files/DrawcatalogComovingMeth1MC'+str(MonteCarloIndex)+'.txt',selected)
-    np.savetxt('heavy files/DrawcatalogComovingMeth1new2.txt',selected)
+    np.savetxt('heavy files/DrawcatalogComovingMeth1new3.txt',selected)
 
     print('Number of objects generated : ', selectedRedshifts.shape[0])
 

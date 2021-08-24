@@ -248,22 +248,25 @@ import nbodykit.cosmology.cosmology as cosm
 
 print('Reading and compiling catalog...')
 
-Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1new1.txt')
+Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1new3.txt')
 n = Catalog.shape[0] #counts number
 rmax = np.max(Catalog[:,0])
 data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
 # # # # # #  random catalog creation
 print('Creating randomized catalog...')
-# print('...with Dplus correction...')
 
-
-rand_n = 10*n
+## randomCatalog from uniform
+rand_n = 5*n
 
 randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
 # print('...and in spherical coordinates...')
 r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
 random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
+
+# randomCatalog = np.loadtxt('heavy files/RANDOMcatalogCorrelated.txt')
+# random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
+
 
 print('Computing Landy and Szaslay estimator...')
 a,b = 15,225
@@ -293,9 +296,9 @@ plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 
 ## http://www.python-simple.com/python-matplotlib/errorBars.php
 plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
 
-np.savetxt('heavy files/binsCorrnew2.txt',r)
-np.savetxt('heavy files/Corrnew2.txt',xsi)
-np.savetxt('heavy files/stdCorrnew2.txt',np.sqrt(np.diag(Cov)))
+np.savetxt('heavy files/binsCorrnew4.txt',r)
+np.savetxt('heavy files/Corrnew4.txt',xsi)
+np.savetxt('heavy files/stdCorrnew4.txt',np.sqrt(np.diag(Cov)))
 
 xref, yref = readtxt('xsi.txt')
 xref,yref = np.array(xref), np.array(yref)
@@ -333,7 +336,7 @@ plt.show()
 # C = FakeCosmo()
 # XSIS = []
 
-# for i in range(20):
+# for i in range(10):
 #     print('Iteration: ',i)
 #     Catalog = np.loadtxt('heavy files/DrawcatalogComovingMeth1MC'+str(i)+'.txt')
 #     n = Catalog.shape[0] #counts number
@@ -352,8 +355,11 @@ plt.show()
 #     res = Xsi.corr.data
 #     r = [el[1] for el in res]
 #     xsi = [el[0] for el in res]
-#     print(xsi)
-#     XSIS.append(xsi)
+    # print(xsi)
+    # XSIS.append(xsi)
+    # # np.savetxt('heavy files/binsCorrMC'+str(i)+'.txt',r)
+    # # np.savetxt('heavy files/CorrMC'+str(i)+'.txt',xsi)
+    # # np.savetxt('heavy files/stdCorrMC'+str(i)+'.txt',np.sqrt(np.diag(Cov)))
 
 # np.savetxt('heavy files/XSIs.txt',XSIS)
 

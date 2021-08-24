@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import scipy.integrate as intg
 import scipy.interpolate 
 
+# ax1 = plt.subplot(121)
+# ax2 = plt.subplot(122)
+
 def readtxt(file):
     X = []
     Y = []
@@ -43,7 +46,7 @@ def plot_likelihood(r,xsi,O,S,std):
         return(xsi_model)
     # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
     def loglikelihood(parameters):
-        print(parameters)
+        # print(parameters)
         universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
         # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
         # xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
@@ -71,7 +74,7 @@ def plot_likelihood(r,xsi,O,S,std):
     t_contours = f(np.array([0.95, 0.68]))
 
     ax1 = plt.subplot(121)
-    # ax1.contourf(X, Y, Z)
+    # # # ax1.contourf(X, Y, Z)
     ax1.scatter(O[a % len(S)], S[a // len(S)])
     ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
@@ -125,24 +128,24 @@ def plot_likelihood(r,xsi,O,S,std):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-x = np.loadtxt('heavy files/binsCorrnew2.txt')
-y = np.loadtxt('heavy files/Corrnew2.txt')
-# x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
-# it = 24
-# x,y = x[it:36],y[it:36]
-# x,y = x[16:16+17], y[16:16+17]
-# noise = 0.01*2*(np.random.uniform(size = (1,len(x)))-0.5)
-# noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.8),size = (1,len(x)))
-# noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.5),size = (1,len(x)))
-# noise = np.hstack([noise[:,:6]/4,noise[:,6:]])
-# y = np.array([y])+noise
-# y = y[0]
-std = np.loadtxt('heavy files/stdCorrnew2.txt')
-# std = [0.05-0.001*i for i in range(len(y))]#[0.01]*len(y) #testing likelihood algorithm
-# std = 0.08*np.power(np.abs(y),0.8)#[0.01]*len(y)
-# std = 0.08*np.power(np.abs(y),0.5)#[0.01]*len(y)
-# std = np.hstack([std[:6]/4,std[6:]])
-plot_likelihood(x, y, np.linspace(0.2,0.4,10),np.linspace(0.7,0.9,10),std)
+# x = np.loadtxt('heavy files/binsCorrnew3.txt')
+# y = np.loadtxt('heavy files/Corrnew3.txt')
+# # # x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
+# # # it = 24
+# # # x,y = x[it:36],y[it:36]
+# # # x,y = x[16:16+17], y[16:16+17]
+# # # noise = 0.01*2*(np.random.uniform(size = (1,len(x)))-0.5)
+# # # noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.8),size = (1,len(x)))
+# # # noise = np.random.normal(scale = 0.08*np.power(np.abs(y),0.5),size = (1,len(x)))
+# # # noise = np.hstack([noise[:,:6]/4,noise[:,6:]])
+# # # y = np.array([y])+noise
+# # # y = y[0]
+# std = np.loadtxt('heavy files/stdCorrnew3.txt')
+# # # std = [0.05-0.001*i for i in range(len(y))]#[0.01]*len(y) #testing likelihood algorithm
+# # # std = 0.08*np.power(np.abs(y),0.8)#[0.01]*len(y)
+# # # std = 0.08*np.power(np.abs(y),0.5)#[0.01]*len(y)
+# # # std = np.hstack([std[:6]/4,std[6:]])
+# plot_likelihood(x, y, np.linspace(0.05,0.65,20),np.linspace(0.5,1.1,20),std)
 
 
 # Conclusions :
@@ -151,3 +154,15 @@ plot_likelihood(x, y, np.linspace(0.2,0.4,10),np.linspace(0.7,0.9,10),std)
 # en particulier sur les les petits Mpc. 
 # - lorsque les barres sont trop grandes, la likelihood a de trop petites variations, et la grille est infinement insuffisante
 # ---> actuellement new2 est pas mal car j'ai enlevé les abberations (3-4 points), et si on divise par un facteur constant les incertitudes les contours sont mêmes très bons
+
+
+#######################
+# Tests MonteCarlo    #
+#######################
+# for i in range(10):
+#     print('iteration: ', i)
+#     x = np.loadtxt('heavy files/binsCorrMC'+str(i)+'.txt')
+#     y = np.loadtxt('heavy files/CorrMC'+str(i)+'.txt')
+#     std = np.loadtxt('heavy files/stdCorrMC'+str(i)+'.txt')
+#     plot_likelihood(x, y, np.linspace(0.05,0.65,20),np.linspace(0.5,1.1,20),std)
+# # plt.show()

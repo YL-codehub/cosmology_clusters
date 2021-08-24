@@ -71,10 +71,11 @@ class doubleCatalog:
         self.zmin = None
         self.zmax = None
         self.counts = None # z x M matrix
-
+        self.nc = 256
 
     def Generate(self, Minf = 5e14, Msup = 1e16, zinf = 0, zsup = 3):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
+        zsup = radialcomov_to_redshift((self.nc/2-1)*dx)
         a,b = m.log(Minf, 10), m.log(Msup, 10)
         self.universe = cosmo.Cosmology()#H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
 
@@ -150,30 +151,38 @@ class doubleCatalog:
 
         # #select,projection = "mollweide"
         print('Selecting...')
-        delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
+        # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
         def Bias_MoWhite(z,M):
-            '''returns Mo & WHite bias for a given z x M array'''
+            '''returns Mo & WHite bias for a given z  array and M a solar Mass'''
             delta_c = 1.686
-            # delta_1 = np.array([delta_c *(1+z)])
-            delta_1 = delta_c*(1+z)
-            # sig0 = np.array([self.universe.initial_sigma(M)])
-            sig0 = self.universe.initial_sigma(M,mode = 'quad')
-            # D = np.array([self.universe.Dplus(z,mode = 'array')])
             D = g(z)
-            # sig = np.kron(sig0,D.T)
-            sig = sig0 * D
-            # nu_1 = np.kron(1/sig0,delta_1.T/D.T)
-            nu_1 = delta_1/sig
-            # Bias = 1+(np.power(nu_1,2)-1)/delta_1.T
+            delta_1 = delta_c/D
+            sig0 = self.universe.initial_sigma(M*1e15,mode = 'quad')
+            nu_1 = delta_1/sig0
             Bias = 1+(np.power(nu_1,2)-1)/delta_1
             return(Bias)
+        ###############################
+        ## Testing Mo and White bias ##
+        ###############################
+        # xref, yref = readtxt('Vérifications fonctions/biasz.txt')
+        # xref,yref = np.ravel(xref),np.ravel(yref)
+        # xref,yref = xref[xref<zmax],yref[xref<zmax]
+        # plt.plot(xref, yref,color = 'black',linewidth = 1)
+        # y = Bias_MoWhite(xref,0.1)
+        # plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
+        # plt.legend(['Reference','Mine'])
+        # plt.xlabel('Redshift')
+        # plt.ylabel('Mo and White bias at M = 0.1 solar Masses')
+        # plt.show()
+
 
         print('Drawing points...')
         def Shellpdf(z,dz = self.z_intervals,mean_M = 1e14):
             '''3D probability probability'''
             # Bias = Bias_MoWhite(Redshifts,np.ravel([mean_M]))
             Bias = Bias_MoWhite(Redshifts,mean_M)
+            Bias = 1
             b = (z-dz/2<=Redshifts)*(Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
             b = b/np.sum(b)
             return b
@@ -181,9 +190,11 @@ class doubleCatalog:
         def rejection_method(n,PDf):
             '''choose n points with rejection sampling method for a given pdf'''
             M = np.max(PDf)
+            # print(np.sum(M-PDf)/np.sum(PDf))
             N = int(np.nan_to_num(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi)) #because many points go in the bin + we points out of the sphere+points twice-drew
             N = np.min([N,3000000]) #un peu sombre
-            #print('N:',N)
+            # N = 500000
+            print('N:',N)
             U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
             H = M*st.uniform().rvs(size=N) 
             selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
@@ -196,32 +207,68 @@ class doubleCatalog:
 
         points = np.zeros((1,3),dtype=int)
         for i in range(len(self.zmin)):
+            print('-----------------------------------------')
             Mdistrib = self.counts[i]
+            print("Central Shell Redshift: ",(self.zmin[i]+self.zmax[i])/2)
             n = int(np.sum(Mdistrib))
             print("objects to draw in the shell: ",n)
-            meanM = np.sum(Mdistrib*(self.Mmin+self.Mmax)/2)/n
+            meanM = np.nan_to_num(np.sum(Mdistrib*(self.Mmin+self.Mmax)/2)/n)
+            # print("Central Shell Mass: ",meanM)
             newpoints = rejection_method(n,PDf = Shellpdf((self.zmin[i]+self.zmax[i])/2,mean_M = meanM))
             print("effective number of draw: ",newpoints.shape[0])
             points = np.vstack([points,newpoints])
+        print('-----------------------------------------')
         points = points[1:,:]
+
+        ### Create the associated random catalog
+
+        random_points = np.zeros((1,3),dtype=int)
+
+        dz = self.z_intervals
+        for i in range(len(self.zmin)):
+            z = (self.zmin[i]+self.zmax[i])/2
+            Mdistrib = self.counts[i]
+            n = 10*int(np.sum(Mdistrib)) # 10 times bigger random catalog
+            Nr = 500*n
+            U = np.round((self.nc-1)*st.uniform().rvs(size=(Nr,3))).astype(int)
+            redshifts = Redshifts[U[:,0],U[:,1],U[:,2]]
+            new_random_points = U[(z-dz/2<=redshifts)*(redshifts<=z+dz/2)]
+            
+            indexes = sorted(np.unique(new_random_points,axis = 0, return_index=True)[1])
+            new_random_points = new_random_points[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
+            new_random_points =  new_random_points[:np.min([len(new_random_points),n]),:]
+            print("Random Catalog shell ok: ",len(new_random_points)==n)
+            random_points = np.vstack([random_points,new_random_points])
+        print('-----------------------------------------')
+        random_points = random_points[1:,:]
 
         # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev<np.pi/6)&(elev>0)))
         # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev>np.pi/6)&(elev<np.pi/2)))
         
-        Redshifts = r*dx
+        Redshifts = r*dx # go back to comoving coordinates 
         selectedRedshifts = np.array([Redshifts[points[:,0],points[:,1],points[:,2]]]).T
         selectedElev = np.array([elev[points[:,0],points[:,1],points[:,2]]]).T
         selectedAz = np.array([az[points[:,0],points[:,1],points[:,2]]]).T
         selected = np.hstack([selectedRedshifts,selectedElev,selectedAz])
         # print(np.mean(selectedRedshifts[selectedElev>0]))
         # print(np.mean(selectedRedshifts[selectedElev>0]))
-
+        ### Il reste à coder la séection de masse
         print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
         print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
-        np.savetxt('catalogCorrelated.txt',selected)
+        np.savetxt('heavy files/catalogCorrelatednobias.txt',selected)
 
         print('Number of objects generated : ', selectedRedshifts.shape[0])
+
+        ## Save random Catalog
+        RselectedRedshifts = np.array([Redshifts[random_points[:,0],random_points[:,1],random_points[:,2]]]).T
+        RselectedElev = np.array([elev[random_points[:,0],random_points[:,1],random_points[:,2]]]).T
+        RselectedAz = np.array([az[random_points[:,0],random_points[:,1],random_points[:,2]]]).T
+        Rselected = np.hstack([RselectedRedshifts,RselectedElev,RselectedAz])
+
+        np.savetxt('heavy files/RANDOMcatalogCorrelatednobias.txt',Rselected)
+
+        print('Number of random objects generated : ', RselectedRedshifts.shape[0]) 
 
         if plot:
             print('Plotting...')
@@ -230,7 +277,8 @@ class doubleCatalog:
             # plt.subplot(111, projection="polar")
             plt.title("Selected objects")
             plt.grid(True)
-            plt.scatter(selectedAz,selectedElev, marker = '.',linewidths=0.01)#, c = selectedRedshifts)
+            plt.scatter(selectedAz,selectedElev, marker = '.',linewidths=0.01,color = 'blue')#, c = selectedRedshifts)
+            plt.scatter(RselectedAz,RselectedElev, marker = '.',linewidths=0.01,color = 'red',alpha = 0.1)
             # plt.scatter(selectedLatt*180/np.pi,selectedRedshifts, marker = '.', c=selectedLong*180/np.pi,linewidths=0.05)
             # cbar = plt.colorbar()
             # cbar.set_label('Redshifts')
@@ -267,12 +315,5 @@ temp.create_catalog_draw(delta_new2)
 # # # # plt.ylabel('Mo and White bias at z = 1')
 # # # # plt.show()
 #
-# xref, yref = readtxt('Vérifications fonctions/biasz.txt')
-# plt.plot(xref, yref,color = 'black',linewidth = 1)
-# y = temp.Bias_MoWhite(np.ravel([xref]),np.ravel([0.1])).T[0]
-# print(y)
-# plt.plot(xref,y, color = 'red',linestyle = '--',linewidth = 1)
-# plt.legend(['Reference','Mine'])
-# plt.xlabel('Redshift')
-# plt.ylabel('Mo and White bias at M = 0.1 solar Masses')
-# plt.show()
+
+
