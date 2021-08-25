@@ -106,6 +106,59 @@ def plot_likelihood(r,xsi,O,S,std):
     ax2.set_ylim([-0.025,0.20])
     plt.show()
 
+def refineMax(r,xsi,std, plot = False):
+    universe = cosmo.Cosmology()
+    xsi = np.array([xsi])
+    std = np.array(std)
+    # Sigma = np.eye(len(xsi[0]))
+    Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
+    np.fill_diagonal(Sigma,std**2)
+    invSig = np.linalg.inv(Sigma)
+
+    # Array integral mode :
+    def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
+        K = np.array([np.linspace(a, b, n)])
+        dK = (b - a) / n
+        X = np.array([R]).T
+        prod = np.kron(K, X)
+        F = univ.initial_Power_Spectrum_BKKS(K, mode='np') * np.sin(K * X) / (K * X) * K ** 2 / (2 * np.pi ** 2)
+        xsi_model = np.sum(F, axis=1) * dK
+        return(xsi_model)
+    # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
+    def loglikelihood(parameters):
+        # print(parameters)
+        universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
+        # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+        # xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
+        xsi_model = integralXsi(r,universe)
+        return np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
+
+    # sol = opt.minimize(loglikelihood, [0.3,0.8],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
+    sol = opt.minimize(loglikelihood, [0.3,0.8], bounds = ((0,1),(0,2))).x
+
+    if plot:
+        # ref versus data
+        ax2 = plt.subplot()
+        #ref
+        xref, yref = readtxt('Vérifications fonctions/xsi.txt')
+        ax2.plot(xref, yref,color = 'black',linewidth = 1)
+        #data
+        ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+        # refined
+        universe = cosmo.Cosmology(Omega_m=sol[0],Omega_v=1-sol[0], sigma_8=sol[1])
+        
+        xsi_model = integralXsi(r,universe)
+        ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
+        ax2.plot(r,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
+
+        ax2.legend(['Theoretical','Refined : '+str(list(np.round(sol,3))),'Data'])
+        ax2.set_xlabel('Radial distance (Mpc)')
+        ax2.set_ylabel('Correlation function')
+        ax2.set_xlim([15,225])
+        ax2.set_ylim([-0.025,0.20])
+        plt.show()
+
+    return(sol) #
 
 ###########################################################
 ## Verifications :
@@ -128,8 +181,8 @@ def plot_likelihood(r,xsi,O,S,std):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-# x = np.loadtxt('heavy files/binsCorrnew3.txt')
-# y = np.loadtxt('heavy files/Corrnew3.txt')
+# x = np.loadtxt('heavy files/binsCorrBig0.txt')
+# y = np.loadtxt('heavy files/CorrBig0.txt')
 # # # x, y = readtxt('Vérifications fonctions/xsi.txt') #testing likelihood algorithm
 # # # it = 24
 # # # x,y = x[it:36],y[it:36]
@@ -140,12 +193,13 @@ def plot_likelihood(r,xsi,O,S,std):
 # # # noise = np.hstack([noise[:,:6]/4,noise[:,6:]])
 # # # y = np.array([y])+noise
 # # # y = y[0]
-# std = np.loadtxt('heavy files/stdCorrnew3.txt')
+# std = np.loadtxt('heavy files/stdCorrBig0.txt')
 # # # std = [0.05-0.001*i for i in range(len(y))]#[0.01]*len(y) #testing likelihood algorithm
 # # # std = 0.08*np.power(np.abs(y),0.8)#[0.01]*len(y)
 # # # std = 0.08*np.power(np.abs(y),0.5)#[0.01]*len(y)
 # # # std = np.hstack([std[:6]/4,std[6:]])
-# plot_likelihood(x, y, np.linspace(0.05,0.65,20),np.linspace(0.5,1.1,20),std)
+# # plot_likelihood(x, y, np.linspace(0.05,0.65,20),np.linspace(0.5,1.1,20),std)
+# print(refineMax(x,y,std,plot=True))
 
 
 # Conclusions :
@@ -157,7 +211,7 @@ def plot_likelihood(r,xsi,O,S,std):
 
 
 #######################
-# Tests MonteCarlo    #
+# Tests 1 réalisation #
 #######################
 # for i in range(10):
 #     print('iteration: ', i)
@@ -166,3 +220,22 @@ def plot_likelihood(r,xsi,O,S,std):
 #     std = np.loadtxt('heavy files/stdCorrMC'+str(i)+'.txt')
 #     plot_likelihood(x, y, np.linspace(0.05,0.65,20),np.linspace(0.5,1.1,20),std)
 # # plt.show()
+
+###########################
+# Refine all MC and store #
+###########################
+Sols = []
+for i in range(20):
+    print('Iteration '+str(i)+' :')
+    x = np.loadtxt('heavy files/binsCorrBig'+str(i)+'.txt')
+    y = np.loadtxt('heavy files/CorrBig'+str(i)+'.txt')  
+    std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
+    sol = refineMax(x,y,std,plot= False )
+    print(sol)
+    Sols.append(sol)
+    print('------------------')
+np.savetxt('heavy files/optiBig.txt',Sols)
+
+
+
+

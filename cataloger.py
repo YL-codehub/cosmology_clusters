@@ -192,7 +192,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
     # np.savetxt('heavy files/DrawcatalogComovingMeth1MC'+str(MonteCarloIndex)+'.txt',selected)
-    np.savetxt('heavy files/DrawcatalogComovingMeth1new3.txt',selected)
+    np.savetxt('heavy files/BigCatalog'+str(MonteCarloIndex)+'.txt',selected)
 
     print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -245,11 +245,11 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
 
 #######################cataloger draw###########################
 
-nc = 256
-dx = 20
-delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
-delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-create_catalog_draw(delta_new2,dx = dx, number = 200000)
+# nc = 256
+# dx = 20
+# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
+# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+# create_catalog_draw(delta_new2,dx = dx, number = 200000)
 
 #######################cataloger MonteCarlo###########################
 
@@ -257,8 +257,9 @@ create_catalog_draw(delta_new2,dx = dx, number = 200000)
 # dx = 20
 # delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
 # delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
+# # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
 
 # for i in range(20):
 #     print('Iteration: ',i)
-#     create_catalog_draw(delta_new2,dx = dx, number = 60000,plot = False,MonteCarloIndex=i)
+#     print('-------------------')
+#     create_catalog_draw(delta_new2,dx = dx, number = 200000,plot = False,MonteCarloIndex=i)
