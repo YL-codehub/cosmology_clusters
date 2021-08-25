@@ -73,7 +73,7 @@ class doubleCatalog:
         self.counts = None # z x M matrix
         self.nc = 256
 
-    def Generate(self, Minf = 5e14, Msup = 1e16, zinf = 0, zsup = 3):
+    def Generate(self, Minf = 1.5e14, Msup = 1e16, zinf = 0, zsup = 3):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
         zsup = radialcomov_to_redshift((self.nc/2-1)*dx)
         a,b = m.log(Minf, 10), m.log(Msup, 10)
@@ -183,6 +183,7 @@ class doubleCatalog:
             # Bias = Bias_MoWhite(Redshifts,np.ravel([mean_M]))
             Bias = Bias_MoWhite(Redshifts,mean_M)
             Bias = 1
+            print('Max number of objects in the shell : ', np.sum((z - dz / 2 <= Redshifts) * (Redshifts <= z + dz / 2)))
             b = (z-dz/2<=Redshifts)*(Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
             b = b/np.sum(b)
             return b
@@ -192,9 +193,9 @@ class doubleCatalog:
             M = np.max(PDf)
             # print(np.sum(M-PDf)/np.sum(PDf))
             N = int(np.nan_to_num(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi)) #because many points go in the bin + we points out of the sphere+points twice-drew
-            N = np.min([N,3000000]) #un peu sombre
+            N = np.min([N,7000000]) #un peu sombre
             # N = 500000
-            print('N:',N)
+            print('Number of draw:',N)
             U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
             H = M*st.uniform().rvs(size=N) 
             selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
@@ -203,6 +204,7 @@ class doubleCatalog:
             Uok = Uok[sphereTruth,:]
             indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
             Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
+            print('Number of unique objects drawn :', len(Uok))
             return Uok[:np.min([len(Uok),n]),:]
 
         points = np.zeros((1,3),dtype=int)
@@ -228,7 +230,7 @@ class doubleCatalog:
         for i in range(len(self.zmin)):
             z = (self.zmin[i]+self.zmax[i])/2
             Mdistrib = self.counts[i]
-            n = 10*int(np.sum(Mdistrib)) # 10 times bigger random catalog
+            n = 5*int(np.sum(Mdistrib)) # 10 times bigger random catalog
             Nr = 500*n
             U = np.round((self.nc-1)*st.uniform().rvs(size=(Nr,3))).astype(int)
             redshifts = Redshifts[U[:,0],U[:,1],U[:,2]]
@@ -256,7 +258,7 @@ class doubleCatalog:
         print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
         print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
-        np.savetxt('heavy files/catalogCorrelatednobias.txt',selected)
+        np.savetxt('heavy files/BigcatalogCorrelated.txt',selected)
 
         print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -266,7 +268,7 @@ class doubleCatalog:
         RselectedAz = np.array([az[random_points[:,0],random_points[:,1],random_points[:,2]]]).T
         Rselected = np.hstack([RselectedRedshifts,RselectedElev,RselectedAz])
 
-        np.savetxt('heavy files/RANDOMcatalogCorrelatednobias.txt',Rselected)
+        np.savetxt('heavy files/RANDOMBigcatalogCorrelated.txt',Rselected)
 
         print('Number of random objects generated : ', RselectedRedshifts.shape[0]) 
 
@@ -300,7 +302,7 @@ delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
 temp = doubleCatalog()
 temp.Generate()
 print(temp.counts.shape)
-temp.create_catalog_draw(delta_new2)
+temp.create_catalog_draw(delta_new2,plot = False)
 
 # res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
 

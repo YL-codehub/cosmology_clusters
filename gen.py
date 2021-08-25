@@ -18,7 +18,7 @@ h = 0.7
 def readtxt(file):
     X = []
     Y = []
-    with open('heavy files/'+file, newline='\n') as csvfile1:
+    with open('Vérifications fonctions/'+file, newline='\n') as csvfile1:
         page1 = csv.reader(csvfile1, quotechar=' ')
         for Row in page1:
             a = Row[0].split()
@@ -156,157 +156,157 @@ def main():
     #     except KeyError:
     #         val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
 
-   ####### Computing correlation WITH CIRCLES # NE PAS TOUT CALCULER
-    radius = 11
-    val = {}
-    points = np.random.randint(radius+1,nc-radius,size = (10000,3))
-    # normsup = 15#nc//2
-    # points =rP.randomPoints(1, normsup ,100,n = 10000)
-    # points = points+nc//2-np.max(points)//2
-    neighbours  = rP.int_sphere(radius)
-    # print(neighbours.shape)
-    for point in points:
-        # i1,i2,j1,j2,k1,k2 = pair
-        i1,j1,k1 = tuple(point)
-        for neighbour in neighbours:
-            i2,j2,k2 = tuple(neighbour)
-            ind = int((i2) ** 2 + (j2) ** 2+ (k2) ** 2)
-            # if (i1+i2>=0)&(j1+j2>=0)&(k1+k2>= 0)&(i1+i2<=nc)&(j1+j2<=nc)&(k1+k2<=nc):
-            try:
-                val[ind].append(delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2])
-            except KeyError:
-                val[ind] = [delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2]]
-        
-    # # # Computing correlation on threshold-chosen values. # NE PAS TOUT CALCULER
- 
-    # val = {}
-    # print(np.std(delta_new))
-    # selected = (delta_new>=0.5)
-    # # plt.imshow((delta_new*selected)[nc//2,:,:])
-    # # plt.show()
-    # b = np.array([[[[i,j,k] for k in range(nc)] for j in range(nc)] for i in range(nc)])
-    # b_selected = b[selected]
-    # print(len(b_selected))
-    # delta_new_selected = delta_new[selected]
-    # print(np.std(delta_new_selected))
-    # facto = np.std(delta_new)/np.std(delta_new_selected)
-    # delta_new_selected = delta_new_selected-np.mean(delta_new_selected)
-    # delta_new_selected *= facto
-    # n =1
-    # for i in range(len(b_selected)):
-    #     for j in range(len(b_selected)):
-    #         ind = int(np.sum((np.ravel(b_selected[i,:])-np.ravel(b_selected[j,:]))**2))
-    #         try:
-    #             val[ind].append(delta_new_selected[i] * delta_new_selected[j])
-    #         except KeyError:
-    #             val[ind] = [delta_new_selected[i] * delta_new_selected[j]]
-
-# # # Computing correlation on pdf-chosen values. # NE PAS TOUT CALCULER
-    
-    # # c = 1
-    # K = 1
-    # c = -K/np.min(delta_new)
-    # print('c:',c)
-    # print('K:',K)
-
-    # def pdf():
-    #     '''3D probability probability'''
-    #     # h = (delta_new>=-1)*(1+delta_new) #method 1
-    #     # h = delta_new-np.min(delta_new) #method 2)
-    #     h = K+c*delta_new #method 3
-    #     h= h/np.sum(h)
-    #     return h
-
-    # def rejection_method(n,PDf = pdf()):
-    #     '''choose n points with rejection sampling method for a given pdf'''
-    #     M = np.max(PDf)
-    #     N = int(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
-    #     U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
-    #     H = M*st.uniform().rvs(size=N) 
-    #     selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
-    #     Uok = U[selection,:]
-    #     sphereTruth = (np.linalg.norm(Uok-nc//2,axis = 1)<=nc//2)
-    #     Uok = Uok[sphereTruth,:]
-    #     indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
-    #     Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
-    #     return Uok[:np.min([len(Uok),n]),:]
-
-    # b_selected = rejection_method(1000)
-    # delta_new_selected = delta_new[b_selected[:,0],b_selected[:,1],b_selected[:,2]]
-    # m = np.mean(delta_new_selected)
-    # mtheo = c*np.std(delta_new)**2
-    # norm = np.sqrt(K-c*m)
-    # # normvraie =  np.sqrt(K-c**2*np.std(delta_new))
-    # delta_new_selected -= m
-    # # delta_new_selected/=norm
-    # print('mean:',m)
-    # print('mean theoretical:', mtheo)
-    # print('norm:',norm)
-    # # print('norm vraie:',normvraie)
-
-    # print(np.std(delta_new))
-    # print(np.mean(delta_new_selected))
-    # val = {}
-    
-    # n =1
-    # for i in range(len(b_selected)):
-    #     for j in range(len(b_selected)):
-    #         ind = int(np.sum((np.ravel(b_selected[i,:])-np.ravel(b_selected[j,:]))**2))
-    #         try:
-    #             val[ind].append(delta_new_selected[i] * delta_new_selected[j])
-    #         except KeyError:
-    #             val[ind] = [delta_new_selected[i] * delta_new_selected[j]]
-
-
-    print('...Binning...')   
-    X = []
-    Xsi = []
-    for key in val.keys():
-        if len(val[key]) > 0:#nc**2/2:
-            if key*dx**2<210**2 and key*dx**2>10**2: #do not count over 200 Mpc and under 20Mpc (non-linear regime)
-                # # # # Xsi = Xsi + val[key]
-                # # # # X = X + [np.sqrt(key)*dx]*len(val[key])
-                Xsi.append(np.mean(val[key])) #biased correlation estimation,
-                   ### if method 3 only:
-                # Xsi.append(np.mean(val[key])/c**2)
-                X.append(np.sqrt(key) * dx)
-                 
-                
-    # #     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
-    # # # # print(X,Xsi)
-    plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
-    # # # # axs[1,1].set_ylabel('Correlation function estimation')
-    # # # # axs[1,1].set_xlabel('Radial distance (Mpc)')
-
-    # print(np.max(X))
-    # # Correlation bins
-    print(len(val.keys()))
-    nbins = 20
-    # beginbins = np.linspace(0,np.max(X),nbins)
-    beginbins = np.linspace(1,210,nbins)
-    bins = []
-    stdbins = []
-    for i in range(nbins-1):
-        tempbin = []
-        for j in range(len(X)):
-            if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
-                tempbin.append(Xsi[j])
-        bins.append(np.mean(tempbin))
-        stdbins.append(np.std(tempbin))
-    print('Plotting correlation...')
-    # print(stdbins)
-    axs[1,1].errorbar(beginbins[:-1]+0.5*np.max(X)/nbins,bins, yerr=stdbins,ecolor= 'red')
-
-# Reference correlation
-    xref, yref = readtxt('xsi.txt')
-    xref,yref = np.array(xref), np.array(yref)
-    selection = (xref>=10)&(xref<=210)
-    xref,yref = xref[selection], yref[selection]
-    axs[1,1].plot(xref, yref,color = 'red')
-    # axs[1,1].semilogx()
-    # axs[1,1].semilogy()
-    axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
-    # 
+#    ####### Computing correlation WITH CIRCLES # NE PAS TOUT CALCULER
+#     # radius = 11
+#     # val = {}
+#     # points = np.random.randint(radius+1,nc-radius,size = (10000,3))
+#     # # normsup = 15#nc//2
+#     # # points =rP.randomPoints(1, normsup ,100,n = 10000)
+#     # # points = points+nc//2-np.max(points)//2
+#     # neighbours  = rP.int_sphere(radius)
+#     # # print(neighbours.shape)
+#     # for point in points:
+#     #     # i1,i2,j1,j2,k1,k2 = pair
+#     #     i1,j1,k1 = tuple(point)
+#     #     for neighbour in neighbours:
+#     #         i2,j2,k2 = tuple(neighbour)
+#     #         ind = int((i2) ** 2 + (j2) ** 2+ (k2) ** 2)
+#     #         # if (i1+i2>=0)&(j1+j2>=0)&(k1+k2>= 0)&(i1+i2<=nc)&(j1+j2<=nc)&(k1+k2<=nc):
+#     #         try:
+#     #             val[ind].append(delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2])
+#     #         except KeyError:
+#     #             val[ind] = [delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2]]
+#     #
+#     # # # Computing correlation on threshold-chosen values. # NE PAS TOUT CALCULER
+#
+#     # val = {}
+#     # print(np.std(delta_new))
+#     # selected = (delta_new>=0.5)
+#     # # plt.imshow((delta_new*selected)[nc//2,:,:])
+#     # # plt.show()
+#     # b = np.array([[[[i,j,k] for k in range(nc)] for j in range(nc)] for i in range(nc)])
+#     # b_selected = b[selected]
+#     # print(len(b_selected))
+#     # delta_new_selected = delta_new[selected]
+#     # print(np.std(delta_new_selected))
+#     # facto = np.std(delta_new)/np.std(delta_new_selected)
+#     # delta_new_selected = delta_new_selected-np.mean(delta_new_selected)
+#     # delta_new_selected *= facto
+#     # n =1
+#     # for i in range(len(b_selected)):
+#     #     for j in range(len(b_selected)):
+#     #         ind = int(np.sum((np.ravel(b_selected[i,:])-np.ravel(b_selected[j,:]))**2))
+#     #         try:
+#     #             val[ind].append(delta_new_selected[i] * delta_new_selected[j])
+#     #         except KeyError:
+#     #             val[ind] = [delta_new_selected[i] * delta_new_selected[j]]
+#
+# # # # Computing correlation on pdf-chosen values. # NE PAS TOUT CALCULER
+#
+#     # # c = 1
+#     # K = 1
+#     # c = -K/np.min(delta_new)
+#     # print('c:',c)
+#     # print('K:',K)
+#
+#     # def pdf():
+#     #     '''3D probability probability'''
+#     #     # h = (delta_new>=-1)*(1+delta_new) #method 1
+#     #     # h = delta_new-np.min(delta_new) #method 2)
+#     #     h = K+c*delta_new #method 3
+#     #     h= h/np.sum(h)
+#     #     return h
+#
+#     # def rejection_method(n,PDf = pdf()):
+#     #     '''choose n points with rejection sampling method for a given pdf'''
+#     #     M = np.max(PDf)
+#     #     N = int(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
+#     #     U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
+#     #     H = M*st.uniform().rvs(size=N)
+#     #     selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
+#     #     Uok = U[selection,:]
+#     #     sphereTruth = (np.linalg.norm(Uok-nc//2,axis = 1)<=nc//2)
+#     #     Uok = Uok[sphereTruth,:]
+#     #     indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
+#     #     Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
+#     #     return Uok[:np.min([len(Uok),n]),:]
+#
+#     # b_selected = rejection_method(1000)
+#     # delta_new_selected = delta_new[b_selected[:,0],b_selected[:,1],b_selected[:,2]]
+#     # m = np.mean(delta_new_selected)
+#     # mtheo = c*np.std(delta_new)**2
+#     # norm = np.sqrt(K-c*m)
+#     # # normvraie =  np.sqrt(K-c**2*np.std(delta_new))
+#     # delta_new_selected -= m
+#     # # delta_new_selected/=norm
+#     # print('mean:',m)
+#     # print('mean theoretical:', mtheo)
+#     # print('norm:',norm)
+#     # # print('norm vraie:',normvraie)
+#
+#     # print(np.std(delta_new))
+#     # print(np.mean(delta_new_selected))
+#     # val = {}
+#
+#     # n =1
+#     # for i in range(len(b_selected)):
+#     #     for j in range(len(b_selected)):
+#     #         ind = int(np.sum((np.ravel(b_selected[i,:])-np.ravel(b_selected[j,:]))**2))
+#     #         try:
+#     #             val[ind].append(delta_new_selected[i] * delta_new_selected[j])
+#     #         except KeyError:
+#     #             val[ind] = [delta_new_selected[i] * delta_new_selected[j]]
+#
+#
+#     print('...Binning...')
+#     X = []
+#     Xsi = []
+#     for key in val.keys():
+#         if len(val[key]) > 0:#nc**2/2:
+#             if key*dx**2<210**2 and key*dx**2>10**2: #do not count over 200 Mpc and under 20Mpc (non-linear regime)
+#                 # # # # Xsi = Xsi + val[key]
+#                 # # # # X = X + [np.sqrt(key)*dx]*len(val[key])
+#                 Xsi.append(np.mean(val[key])) #biased correlation estimation,
+#                    ### if method 3 only:
+#                 # Xsi.append(np.mean(val[key])/c**2)
+#                 X.append(np.sqrt(key) * dx)
+#
+#
+#     # #     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
+#     # # # # print(X,Xsi)
+#     plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
+#     # # # # axs[1,1].set_ylabel('Correlation function estimation')
+#     # # # # axs[1,1].set_xlabel('Radial distance (Mpc)')
+#
+#     # print(np.max(X))
+#     # # Correlation bins
+#     print(len(val.keys()))
+#     nbins = 20
+#     # beginbins = np.linspace(0,np.max(X),nbins)
+#     beginbins = np.linspace(1,210,nbins)
+#     bins = []
+#     stdbins = []
+#     for i in range(nbins-1):
+#         tempbin = []
+#         for j in range(len(X)):
+#             if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
+#                 tempbin.append(Xsi[j])
+#         bins.append(np.mean(tempbin))
+#         stdbins.append(np.std(tempbin))
+#     print('Plotting correlation...')
+#     # print(stdbins)
+#     axs[1,1].errorbar(beginbins[:-1]+0.5*np.max(X)/nbins,bins, yerr=stdbins,ecolor= 'red')
+#
+# # Reference correlation
+#     xref, yref = readtxt('xsi.txt')
+#     xref,yref = np.array(xref), np.array(yref)
+#     selection = (xref>=10)&(xref<=210)
+#     xref,yref = xref[selection], yref[selection]
+#     axs[1,1].plot(xref, yref,color = 'red')
+#     # axs[1,1].semilogx()
+#     # axs[1,1].semilogy()
+#     axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
+#     #
 
     # Analytical fourier⁻1
     # f = lambda k,x : initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
@@ -317,9 +317,9 @@ def main():
     # plt.xlim([20,100])
     plt.show()
 
-    np.savetxt('heavy files/binsCorr3',beginbins[:-1]+0.5*np.max(X)/nbins)
-    np.savetxt('heavy files/Corr3',np.ravel(bins))
-    np.savetxt('heavy files/stdCorr3',np.ravel(stdbins))
+    # np.savetxt('heavy files/binsCorr3',beginbins[:-1]+0.5*np.max(X)/nbins)
+    # np.savetxt('heavy files/Corr3',np.ravel(bins))
+    # np.savetxt('heavy files/stdCorr3',np.ravel(stdbins))
 
 
 
@@ -332,24 +332,24 @@ if __name__ == "__main__":
 
     
     #ref
-    xref, yref = readtxt('xsi.txt')
-    xref,yref = np.array(xref), np.array(yref)
-    selection = (xref>=15)&(xref<=200)
-    xref,yref = xref[selection], yref[selection]
-    yref = 1+yref
-    plt.loglog(xref, yref,color = 'red')
+    # xref, yref = readtxt('xsi.txt')
+    # xref,yref = np.array(xref), np.array(yref)
+    # selection = (xref>=15)&(xref<=200)
+    # xref,yref = xref[selection], yref[selection]
+    # yref = 1+yref
+    # plt.loglog(xref, yref,color = 'red')
 
-    #computed
-    x = np.array(np.loadtxt('heavy files/binsCorr3'))
-    y = np.array(np.loadtxt('heavy files/Corr3'))
-    y = 1+y
-    # plt.semilogx()
-    # plt.semilogy()
-    std = np.loadtxt('heavy files/stdCorr3')
-    plt.errorbar(x,y,yerr=(std))
+    # #computed
+    # x = np.array(np.loadtxt('heavy files/binsCorr3'))
+    # y = np.array(np.loadtxt('heavy files/Corr3'))
+    # y = 1+y
+    # # plt.semilogx()
+    # # plt.semilogy()
+    # std = np.loadtxt('heavy files/stdCorr3')
+    # plt.errorbar(x,y,yerr=(std))
 
-    plt.xlabel('Radial Distance (Mpc)')
-    plt.ylabel(r'$ 1+\xi(r) $')
-    plt.legend(['Reference', 'Box'])
+    # plt.xlabel('Radial Distance (Mpc)')
+    # plt.ylabel(r'$ 1+\xi(r) $')
+    # plt.legend(['Reference', 'Box'])
 
-    plt.show()
+    # plt.show()
