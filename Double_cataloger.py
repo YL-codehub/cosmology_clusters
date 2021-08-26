@@ -73,9 +73,9 @@ class doubleCatalog:
         self.counts = None # z x M matrix
         self.nc = 256
 
-    def Generate(self, Minf = 1.5e14, Msup = 1e16, zinf = 0, zsup = 3):
+    def Generate(self, Minf = 1.6e14, Msup = 1e16, zinf = 0, zsup = 3):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
-        zsup = radialcomov_to_redshift((self.nc/2-1)*dx)
+        zsup = radialcomov_to_redshift((self.nc/2-1)*dx)-0.1 #avoid border effects
         a,b = m.log(Minf, 10), m.log(Msup, 10)
         self.universe = cosmo.Cosmology()#H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
 
@@ -208,20 +208,29 @@ class doubleCatalog:
             return Uok[:np.min([len(Uok),n]),:]
 
         points = np.zeros((1,3),dtype=int)
+        masses = np.zeros((1,1),dtype=int)
+        Ms = (self.Mmin+self.Mmax)/2
         for i in range(len(self.zmin)):
             print('-----------------------------------------')
+            # Draw points 
             Mdistrib = self.counts[i]
             print("Central Shell Redshift: ",(self.zmin[i]+self.zmax[i])/2)
             n = int(np.sum(Mdistrib))
             print("objects to draw in the shell: ",n)
-            meanM = np.nan_to_num(np.sum(Mdistrib*(self.Mmin+self.Mmax)/2)/n)
-            # print("Central Shell Mass: ",meanM)
+            meanM = np.nan_to_num(np.sum(Mdistrib*Ms)/n)
             newpoints = rejection_method(n,PDf = Shellpdf((self.zmin[i]+self.zmax[i])/2,mean_M = meanM))
             print("effective number of draw: ",newpoints.shape[0])
             points = np.vstack([points,newpoints])
+            #Draw masses (the mire density = the bigger the affected mass):
+            tempMasses = np.array([np.hstack([[Ms[i]]*int(Mdistrib[i]) for i in range(len(Mdistrib))])]).T
+            indexes = np.argsort(delta_new2[newpoints[:,0],newpoints[:,1],newpoints[:,2]])
+            Rev_indexes = np.argsort(indexes)
+            newMasses = tempMasses[Rev_indexes]
+            masses = np.vstack([masses,newMasses])
         print('-----------------------------------------')
         points = points[1:,:]
-
+        SelectedMasses = masses[1:,:]
+        
         ### Create the associated random catalog
 
         random_points = np.zeros((1,3),dtype=int)
@@ -230,8 +239,11 @@ class doubleCatalog:
         for i in range(len(self.zmin)):
             z = (self.zmin[i]+self.zmax[i])/2
             Mdistrib = self.counts[i]
-            n = 5*int(np.sum(Mdistrib)) # 10 times bigger random catalog
-            Nr = 500*n
+            n = 2*int(np.sum(Mdistrib)) # 10 times bigger random catalog
+            Nr = 600*n
+            print(Nr)
+            Nr = min(Nr, 10000000)
+            # Nr = min(Nr,500000)
             U = np.round((self.nc-1)*st.uniform().rvs(size=(Nr,3))).astype(int)
             redshifts = Redshifts[U[:,0],U[:,1],U[:,2]]
             new_random_points = U[(z-dz/2<=redshifts)*(redshifts<=z+dz/2)]
@@ -251,10 +263,10 @@ class doubleCatalog:
         selectedRedshifts = np.array([Redshifts[points[:,0],points[:,1],points[:,2]]]).T
         selectedElev = np.array([elev[points[:,0],points[:,1],points[:,2]]]).T
         selectedAz = np.array([az[points[:,0],points[:,1],points[:,2]]]).T
-        selected = np.hstack([selectedRedshifts,selectedElev,selectedAz])
+        selected = np.hstack([selectedRedshifts,selectedElev,selectedAz,SelectedMasses])
         # print(np.mean(selectedRedshifts[selectedElev>0]))
         # print(np.mean(selectedRedshifts[selectedElev>0]))
-        ### Il reste à coder la séection de masse
+
         print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
         print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 

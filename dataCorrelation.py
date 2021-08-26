@@ -248,25 +248,27 @@ import nbodykit.cosmology.cosmology as cosm
 
 print('Reading and compiling catalog...')
 
-Catalog = np.loadtxt('heavy files/BigCatalog0.txt')
+Catalog = np.loadtxt('heavy files/BigcatalogCorrelated.txt')
 n = Catalog.shape[0] #counts number
+print("Catalog size :",n)
 rmax = np.max(Catalog[:,0])
 data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
 # # # # # #  random catalog creation
 print('Creating randomized catalog...')
 
-## randomCatalog from uniform
-rand_n = 4*n
+# ## randomCatalog from uniform
+# rand_n = 4*n
 
 # randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
 # # print('...and in spherical coordinates...')
 # r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
 # random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
-randomCatalog = np.loadtxt('heavy files/RANDOMcatalogCorrelatednobias.txt')
+randomCatalog = np.loadtxt('heavy files/RANDOMBigcatalogCorrelated.txt')
 random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
 
+print("Random catalog size :",randomCatalog.shape[0])
 
 print('Computing Landy and Szaslay estimator...')
 a,b = 15,225
