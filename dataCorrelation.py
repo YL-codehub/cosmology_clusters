@@ -246,82 +246,82 @@ from nbodykit.algorithms.paircount_tpcf import tpcf
 from nbodykit.lab import ArrayCatalog
 import nbodykit.cosmology.cosmology as cosm
 
-print('Reading and compiling catalog...')
+# print('Reading and compiling catalog...')
 
-Catalog = np.loadtxt('heavy files/BigcatalogCorrelated.txt')
-n = Catalog.shape[0] #counts number
-print("Catalog size :",n)
-rmax = np.max(Catalog[:,0])
-data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
+# Catalog = np.loadtxt('heavy files/BigcatalogCorrelated.txt')
+# n = Catalog.shape[0] #counts number
+# print("Catalog size :",n)
+# rmax = np.max(Catalog[:,0])
+# data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
-# # # # # #  random catalog creation
-print('Creating randomized catalog...')
+# # # # # # #  random catalog creation
+# print('Creating randomized catalog...')
 
-# ## randomCatalog from uniform
-# rand_n = 4*n
+# # ## randomCatalog from uniform
+# # rand_n = 4*n
 
-# randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
-# # print('...and in spherical coordinates...')
-# r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
-# random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
+# # randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
+# # # print('...and in spherical coordinates...')
+# # r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
+# # random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
-randomCatalog = np.loadtxt('heavy files/RANDOMBigcatalogCorrelated.txt')
-random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
+# randomCatalog = np.loadtxt('heavy files/RANDOMBigcatalogCorrelated.txt')
+# random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
 
-print("Random catalog size :",randomCatalog.shape[0])
+# print("Random catalog size :",randomCatalog.shape[0])
 
-print('Computing Landy and Szaslay estimator...')
-a,b = 15,225
-steps = 10
-bins = np.linspace(a,b,int((b-a)/steps)+1)
+# print('Computing Landy and Szaslay estimator...')
+# a,b = 15,225
+# steps = 10
+# bins = np.linspace(a,b,int((b-a)/steps)+1)
 
-class FakeCosmo(object):
-            def comoving_distance(self, z):
-                return z
-C = FakeCosmo()
+# class FakeCosmo(object):
+#             def comoving_distance(self, z):
+#                 return z
+# C = FakeCosmo()
 
-Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
+# Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
 
-print('Displaying results...')
-plt.subplot(121)
-res = Xsi.corr.data
-r = [el[1] for el in res]
-xsi = [el[0] for el in res]
+# print('Displaying results...')
+# plt.subplot(121)
+# res = Xsi.corr.data
+# r = [el[1] for el in res]
+# xsi = [el[0] for el in res]
 
-## add errorbars thanks to MONTECARLO preliminary work:
-XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
-Cov = np.cov(XsisMC)
-# plt.imshow(np.corrcoef(XsisMC))
-# plt.colorbar()
+# ## add errorbars thanks to MONTECARLO preliminary work:
+# XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
+# Cov = np.cov(XsisMC)
+# # plt.imshow(np.corrcoef(XsisMC))
+# # plt.colorbar()
+# # plt.show()
+# # plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+# ## http://www.python-simple.com/python-matplotlib/errorBars.php
+# plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
+
+# # np.savetxt('heavy files/binsCorrBig0.txt',r)
+# # np.savetxt('heavy files/CorrBig0.txt',xsi)
+# # np.savetxt('heavy files/stdCorrBig0.txt',np.sqrt(np.diag(Cov)))
+
+# xref, yref = readtxt('xsi.txt')
+# xref,yref = np.array(xref), np.array(yref)
+# selection = (xref>=19)&(xref<=r[-1])
+# xref,yref = xref[selection], yref[selection]
+# plt.xlabel('Radial distance (Mpc)')
+# plt.ylabel(r'$\xi(r)$')
+# plt.plot(xref, yref,color = 'black')
+# plt.legend(['Mine','Ref'])
+
+# try:
+#     plt.subplot(122)
+#     fc = interpolate.interp1d(r,xsi)
+#     xsi_2 = fc(xref)
+#     plt.plot(xref,np.log(1+xsi_2)/(np.log(1+yref)))
+#     plt.xlabel('Radial distance (Mpc)')
+#     plt.ylabel(r'$log(1+\xi_{mine}(r))/log(1+\xi_{ref}(r))$')
+# except:
+#     print('oups')
+
 # plt.show()
-# plt.errorbar(r, xsi, yerr=np.sqrt(np.diag(Cov)),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
-## http://www.python-simple.com/python-matplotlib/errorBars.php
-plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
-
-# np.savetxt('heavy files/binsCorrBig0.txt',r)
-# np.savetxt('heavy files/CorrBig0.txt',xsi)
-# np.savetxt('heavy files/stdCorrBig0.txt',np.sqrt(np.diag(Cov)))
-
-xref, yref = readtxt('xsi.txt')
-xref,yref = np.array(xref), np.array(yref)
-selection = (xref>=19)&(xref<=r[-1])
-xref,yref = xref[selection], yref[selection]
-plt.xlabel('Radial distance (Mpc)')
-plt.ylabel(r'$\xi(r)$')
-plt.plot(xref, yref,color = 'black')
-plt.legend(['Mine','Ref'])
-
-try:
-    plt.subplot(122)
-    fc = interpolate.interp1d(r,xsi)
-    xsi_2 = fc(xref)
-    plt.plot(xref,np.log(1+xsi_2)/(np.log(1+yref)))
-    plt.xlabel('Radial distance (Mpc)')
-    plt.ylabel(r'$log(1+\xi_{mine}(r))/log(1+\xi_{ref}(r))$')
-except:
-    print('oups')
-
-plt.show()
 
 # # # # # mpiexec -np 4 python dataCorrelation
 
@@ -366,3 +366,37 @@ plt.show()
 # np.savetxt('heavy files/BigXSIs.txt',XSIS)
 
 
+########### Big Correlation ###########
+a,b = 15,225
+steps = 10
+bins = np.linspace(a,b,int((b-a)/steps)+1)
+
+class FakeCosmo(object):
+            def comoving_distance(self, z):
+                return z
+C = FakeCosmo()
+
+for i in range(39,40):
+    print('Iteration: ',i)
+    #readCatalog
+    Catalog = np.loadtxt('heavy files/BigCorrelationCatalog'+str(i)+'.txt')
+    n = Catalog.shape[0] #counts number
+    print("Catalog size :",n)
+    rmax = np.max(Catalog[:,0])
+    data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
+
+    # randomCatalog
+    randomCatalog = np.loadtxt('heavy files/RANDOMBigCorrelationCatalog'+str(i)+'.txt')
+    random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
+    print("Random catalog size :",randomCatalog.shape[0])
+
+    Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
+
+    res = Xsi.corr.data
+    r = [el[1] for el in res]
+    xsi = [el[0] for el in res]
+
+    np.savetxt('heavy files/CorrbinsBigCorrelation'+str(i)+'.txt',r)
+    np.savetxt('heavy files/CorrBigCorrelation'+str(i)+'.txt',xsi)
+    
+    print('-----------')

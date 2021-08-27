@@ -73,9 +73,10 @@ class doubleCatalog:
         self.counts = None # z x M matrix
         self.nc = 256
 
-    def Generate(self, Minf = 1.6e14, Msup = 1e16, zinf = 0, zsup = 3):
+    def Generate(self, Minf = 1.6e14, Msup = 1e16, zinf = 0, zsup = 3, name = 'Catalog'):
         '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
         zsup = radialcomov_to_redshift((self.nc/2-1)*dx)-0.1 #avoid border effects
+        print(zsup)
         a,b = m.log(Minf, 10), m.log(Msup, 10)
         self.universe = cosmo.Cosmology()#H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
 
@@ -102,7 +103,7 @@ class doubleCatalog:
                 self.counts[j,i] = N
                 # print(self.bins[nbin])
                 nbin +=1
-
+        np.savetxt('heavy files/Bins_'+str(self.z_intervals)+'_'+str(self.logM_intervals)+name+'.txt',self.counts)
         # for i in range(len(Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
         #     for j in range(len(zmin)): # bin [zm, zm+z_interval]
         # #         ## Encode data :
@@ -119,7 +120,7 @@ class doubleCatalog:
         a_file = open(name, "rb")
         self.bins = pk.load(a_file)
 
-    def create_catalog_draw(self,delta_new2,dx = 20, plot = True):
+    def create_catalog_draw(self,delta_new2,dx = 20, plot = True, name = 'Catalog'):
         '''from density 3d numpy array (box) to correlated simple catalog for correlation (in a text file). 
     Density field is the probability field and we make a draw in there.
         dx(Mpc) is the physical length of a pixel in the box. 
@@ -230,7 +231,7 @@ class doubleCatalog:
         print('-----------------------------------------')
         points = points[1:,:]
         SelectedMasses = masses[1:,:]
-        
+
         ### Create the associated random catalog
 
         random_points = np.zeros((1,3),dtype=int)
@@ -270,7 +271,7 @@ class doubleCatalog:
         print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
         print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
-        np.savetxt('heavy files/BigcatalogCorrelated.txt',selected)
+        np.savetxt('heavy files/'+name+'.txt',selected)
 
         print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -280,7 +281,7 @@ class doubleCatalog:
         RselectedAz = np.array([az[random_points[:,0],random_points[:,1],random_points[:,2]]]).T
         Rselected = np.hstack([RselectedRedshifts,RselectedElev,RselectedAz])
 
-        np.savetxt('heavy files/RANDOMBigcatalogCorrelated.txt',Rselected)
+        np.savetxt('heavy files/RANDOM'+name+'.txt',Rselected)
 
         print('Number of random objects generated : ', RselectedRedshifts.shape[0]) 
 
@@ -311,10 +312,12 @@ delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
 # print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
 
 #######################Mo & White Bias###########################
-temp = doubleCatalog()
-temp.Generate()
-print(temp.counts.shape)
-temp.create_catalog_draw(delta_new2,plot = False)
+for i in range(20,40):
+    print('Iteration '+str(i))
+    temp = doubleCatalog()
+    temp.Generate(name = 'BigCorrelationCatalog'+str(i))
+    temp.create_catalog_draw(delta_new2,plot = False, name = 'BigCorrelationCatalog'+str(i))
+    print('------------')
 
 # res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
 
@@ -329,5 +332,8 @@ temp.create_catalog_draw(delta_new2,plot = False)
 # # # # plt.ylabel('Mo and White bias at z = 1')
 # # # # plt.show()
 #
+
+# def bins_from_catalog(filename,z_interval,logM_intervals):
+#     Catalog = np.loadtxt('filename')
 
 

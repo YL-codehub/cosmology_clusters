@@ -188,10 +188,10 @@ class Catalog:
 
 # #
 temp = Catalog()
-# # temp.Generate()
-# # temp.save_bins('test')
+temp.Generate()
+temp.save_bins('test')
 # # # please take the same rad2
-# # temp = Catalog()
+# temp = Catalog()
 temp.read_bins('test')
 temp.plotLikelihood(np.linspace(0.25,0.35,5),np.linspace(0.75,0.85,5),mode = 'gauss')
 # temp.plotLikelihood1D(np.linspace(0.5,1,20)) #sigma8
