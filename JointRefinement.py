@@ -140,8 +140,8 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
     #### LOAD DATA, from the same catalog !!!
     # Load Correlation Data
     r = np.loadtxt('heavy files/Corrbins'+corrfilename+'.txt')
-    # xsi = np.array([np.loadtxt('heavy files/Corr'+corrfilename+'.txt')])
-    xsi = np.array([integralXsi(r,cosmo.Cosmology())])
+    xsi = np.array([np.loadtxt('heavy files/Corr'+corrfilename+'.txt')])
+    # xsi = np.array([integralXsi(r,cosmo.Cosmology())])
     std = np.loadtxt('heavy files/stdCorrBig0.txt')
     # Sigma = np.eye(len(xsi[0]))
     Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
@@ -205,3 +205,5 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
 
 # plot_likelihood('BigCorrelation6','BigCorrelationCatalog6',np.linspace(0.10,0.50,11),np.linspace(0.6,1.0,11),mode = 'multi')
 print(refineMax('BigCorrelation12','BigCorrelationCatalog12',mode = 'multi',plot = True))
+
+## coder counts en gaussien aussi sinon ? utile pour la suite.

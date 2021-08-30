@@ -34,16 +34,17 @@ def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
     xsi_model = np.sum(F, axis=1) * dK
     return(xsi_model)
 
-def plot_likelihood(r,xsi,O,S,std):
+def plot_likelihood(r,xsi,O,S,std,mode = 'diagonal'):
     '''Xsi(r) = fourier^-1{spectrum) on xsi(r) data points 
     (usually coming from Landy and Szaslay estimator).'''
     universe = cosmo.Cosmology()
     xsi = np.array([xsi])
     std = np.array(std)
-    # Sigma = np.eye(len(xsi[0]))
-    Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
-    np.fill_diagonal(Sigma,std**2)
-    invSig = np.linalg.inv(Sigma)
+    if mode == 'diagonal':
+        Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
+        np.fill_diagonal(Sigma,std**2)
+        std = Sigma
+    invSig = np.linalg.inv(std)
 
 
     # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
@@ -76,7 +77,7 @@ def plot_likelihood(r,xsi,O,S,std):
     t_contours = f(np.array([0.95, 0.68]))
 
     ax1 = plt.subplot(121)
-    # # ax1.contourf(X, Y, Z)
+    # ax1.contourf(X, Y, Z)
     ax1.scatter(O[a % len(S)], S[a // len(S)])
     ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
@@ -88,7 +89,7 @@ def plot_likelihood(r,xsi,O,S,std):
     xref, yref = readtxt('Vérifications fonctions/xsi.txt')
     ax2.plot(xref, yref,color = 'black',linewidth = 1)
     #data
-    ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+    ax2.errorbar(r,xsi.T, yerr=std.diagonal(),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
     # refined
     universe = cosmo.Cosmology(Omega_m=O[a % len(S)],Omega_v=1-O[a % len(S)], sigma_8=S[a // len(S)])
     # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
@@ -109,14 +110,16 @@ def plot_likelihood(r,xsi,O,S,std):
     plt.show()
 
 
-def refineMax(r,xsi,std, plot = False):
+def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
     universe = cosmo.Cosmology()
     xsi = np.array([xsi])
     std = np.array(std)
-    # Sigma = np.eye(len(xsi[0]))
-    Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
-    np.fill_diagonal(Sigma,std**2)
-    invSig = np.linalg.inv(Sigma)
+    if mode == 'diagonal':
+        Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
+        np.fill_diagonal(Sigma,std**2)
+        std = Sigma
+    invSig = np.linalg.inv(std)
+    
 
 
     # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
@@ -138,7 +141,7 @@ def refineMax(r,xsi,std, plot = False):
         xref, yref = readtxt('Vérifications fonctions/xsi.txt')
         ax2.plot(xref, yref,color = 'black',linewidth = 1)
         #data
-        ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+        ax2.errorbar(r,xsi.T, yerr=std.diagonal(),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
         # refined
         universe = cosmo.Cosmology(Omega_m=sol[0],Omega_v=1-sol[0], sigma_8=sol[1])
         
@@ -177,11 +180,15 @@ def refineMax(r,xsi,std, plot = False):
 
 ##################
 # x = np.loadtxt('heavy files/binsCorrBig0.txt')
+# # y = np.loadtxt('heavy files/CorrBig0.txt')
 # y = integralXsi(x,cosmo.Cosmology())
 # std = np.loadtxt('heavy files/stdCorrBig0.txt')
+# # XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
+# # std = np.cov(XsisMC)
 # plot_likelihood(x, y, np.linspace(0.20,0.40,31),np.linspace(0.7,0.9,31),std)
-# print(refineMax(x,y,std,plot=True))
-
+# # print(refineMax(x,y,std,plot=True,mode = 'non-diagonal'))
+# # stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
+# # print(refineMax(x,y,stddiag,plot=True))
 
 #######################
 # Tests 1 réalisation #
@@ -197,17 +204,20 @@ def refineMax(r,xsi,std, plot = False):
 ###########################
 # Refine all MC and store #
 # ###########################
-# Sols = []
-# for i in range(20):
-#     print('Iteration '+str(i)+' :')
-#     x = np.loadtxt('heavy files/binsCorrBig'+str(i)+'.txt')
-#     y = np.loadtxt('heavy files/CorrBig'+str(i)+'.txt')  
-#     std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
-#     sol = refineMax(x,y,std,plot= False )
-#     print(sol)
-#     Sols.append(sol)
-#     print('------------------')
-# np.savetxt('heavy files/optiBig.txt',Sols)
+Sols = []
+for i in range(0,40):
+    try:
+        print('Iteration '+str(i)+' :')
+        x = np.loadtxt('heavy files/CorrbinsBigCorrelation'+str(i)+'.txt')
+        y = np.loadtxt('heavy files/CorrBigCorrelation'+str(i)+'.txt')  
+        std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
+        sol = refineMax(x,y,std,plot= False )
+        print(sol)
+        Sols.append(sol)
+        print('------------------')
+    except:
+        continue
+np.savetxt('heavy files/optiBig2.txt',Sols)
 
 
 

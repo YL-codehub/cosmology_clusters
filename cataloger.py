@@ -152,19 +152,20 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
     print('Drawing points...')
-    # c = -1/np.min(delta_new2)
+    c = -1/np.min(delta_new2)
+    c = 0.2 #valeur commune
     def pdf():
         '''3D probability probability'''
-        h = (delta_new2>=-1)*(1+delta_new2) #method 1
+        # h = (delta_new2>=-1)*(1+delta_new2) #method 1
         # h = delta_new2-np.min(delta_new2) #method 2
-        # h = 1+c*delta_new2
+        h = 1+c*delta_new2
         h = h/np.sum(h)
         return h
 
     def rejection_method(n,PDf = pdf()):
         '''choose n points with rejection sampling method for a given pdf'''
         M = np.max(PDf)
-        N = int(np.round(n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
+        N = int(np.round(2*n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
         U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
         H = M*st.uniform().rvs(size=N) 
         selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
@@ -192,7 +193,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
     # np.savetxt('heavy files/DrawcatalogComovingMeth1MC'+str(MonteCarloIndex)+'.txt',selected)
-    np.savetxt('heavy files/BigCatalog'+str(MonteCarloIndex)+'.txt',selected)
+    np.savetxt('heavy files/BigCatalogTest'+str(MonteCarloIndex)+'.txt',selected)
 
     print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -247,19 +248,20 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
 
 # nc = 256
 # dx = 20
-# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
+# delta_new2 = np.fromfile('heavy files/box2nc'+str(nc)+'dx'+str(int(dx)))
 # delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# create_catalog_draw(delta_new2,dx = dx, number = 200000)
+# print(np.min(delta_new2),np.std(delta_new2))
+# create_catalog_draw(delta_new2,dx = dx, number = 500000,MonteCarloIndex=2,plot = False)
 
 #######################cataloger MonteCarlo###########################
 
-# nc = 256
-# dx = 20
-# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
-# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
+nc = 256
+dx = 20
+delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
+delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+# print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
 
-# for i in range(20):
-#     print('Iteration: ',i)
-#     print('-------------------')
-#     create_catalog_draw(delta_new2,dx = dx, number = 200000,plot = False,MonteCarloIndex=i)
+for i in range(20):
+    print('Iteration: ',i)
+    print('-------------------')
+    create_catalog_draw(delta_new2,dx = dx, number = 500000,plot = False,MonteCarloIndex=i)

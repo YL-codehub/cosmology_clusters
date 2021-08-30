@@ -10,7 +10,7 @@ import scipy.interpolate
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-points = np.loadtxt('heavy files/optiBig.txt')
+points = np.loadtxt('heavy files/optiBig3.txt')
 sigmas, Oms = points[:,1], points[:,0]
 
 # Show the datapoints on top of this, 
