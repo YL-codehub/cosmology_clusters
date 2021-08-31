@@ -89,7 +89,7 @@ def plot_likelihood(r,xsi,O,S,std,mode = 'diagonal'):
     xref, yref = readtxt('Vérifications fonctions/xsi.txt')
     ax2.plot(xref, yref,color = 'black',linewidth = 1)
     #data
-    ax2.errorbar(r,xsi.T, yerr=std.diagonal(),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+    ax2.errorbar(r,xsi.T, yerr=np.sqrt(std.diagonal()),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
     # refined
     universe = cosmo.Cosmology(Omega_m=O[a % len(S)],Omega_v=1-O[a % len(S)], sigma_8=S[a // len(S)])
     # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
@@ -131,8 +131,8 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
         xsi_model = integralXsi(r,universe)
         return np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
 
-    # sol = opt.minimize(loglikelihood, [0.3,0.8],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
-    sol = opt.minimize(loglikelihood, [0.3,0.8], bounds = ((0,1),(0,2))).x
+    sol = opt.minimize(loglikelihood, [0.2,0.7],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
+    # sol = opt.minimize(loglikelihood, [0.2,0.8], bounds = ((0,1),(0,2))).x
 
     if plot:
         # ref versus data
@@ -141,7 +141,7 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
         xref, yref = readtxt('Vérifications fonctions/xsi.txt')
         ax2.plot(xref, yref,color = 'black',linewidth = 1)
         #data
-        ax2.errorbar(r,xsi.T, yerr=std.diagonal(),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+        ax2.errorbar(r,xsi.T, yerr=np.sqrt(std.diagonal()),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
         # refined
         universe = cosmo.Cosmology(Omega_m=sol[0],Omega_v=1-sol[0], sigma_8=sol[1])
         
@@ -185,8 +185,12 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 # std = np.loadtxt('heavy files/stdCorrBig0.txt')
 # # XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
 # # std = np.cov(XsisMC)
-# plot_likelihood(x, y, np.linspace(0.20,0.40,31),np.linspace(0.7,0.9,31),std)
-# # print(refineMax(x,y,std,plot=True,mode = 'non-diagonal'))
+
+x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
+y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
+std = np.loadtxt('heavy files/stdCorrBox.txt')
+plot_likelihood(x, y, np.linspace(0.20,0.40,41),np.linspace(0.7,1.0,41),std)
+# print(refineMax(x,y,std,plot=True))
 # # stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
 # # print(refineMax(x,y,stddiag,plot=True))
 
@@ -203,21 +207,21 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 
 ###########################
 # Refine all MC and store #
-# ###########################
-Sols = []
-for i in range(0,40):
-    try:
-        print('Iteration '+str(i)+' :')
-        x = np.loadtxt('heavy files/CorrbinsBigCorrelation'+str(i)+'.txt')
-        y = np.loadtxt('heavy files/CorrBigCorrelation'+str(i)+'.txt')  
-        std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
-        sol = refineMax(x,y,std,plot= False )
-        print(sol)
-        Sols.append(sol)
-        print('------------------')
-    except:
-        continue
-np.savetxt('heavy files/optiBig2.txt',Sols)
+# # ###########################
+# Sols = []
+# for i in range(0,40):
+#     try:
+#         print('Iteration '+str(i)+' :')
+#         x = np.loadtxt('heavy files/CorrbinsBigCorrelation'+str(i)+'.txt')
+#         y = np.loadtxt('heavy files/CorrBigCorrelation'+str(i)+'.txt')  
+#         std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
+#         sol = refineMax(x,y,std,plot= False )
+#         print(sol)
+#         Sols.append(sol)
+#         print('------------------')
+#     except:
+#         continue
+# np.savetxt('heavy files/optiBig2.txt',Sols)
 
 
 

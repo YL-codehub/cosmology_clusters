@@ -406,9 +406,9 @@ import nbodykit.cosmology.cosmology as cosm
 
 ####simple plot of previous computing
 XSIS = []
-XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
-Cov = np.cov(XsisMC)
-np.savetxt('heavy files/stdCorrBigTest.txt',np.sqrt(np.diag(Cov)))
+# XsisMC = np.loadtxt('heavy files/XSIsBig.txt').T
+# Cov = np.cov(XsisMC)
+# np.savetxt('heavy files/stdCorrBigTest.txt',np.sqrt(np.diag(Cov)))
 
 for i in range(20):
     try:

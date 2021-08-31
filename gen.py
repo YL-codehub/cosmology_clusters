@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import randPoints as rP
 import scipy.stats as st
+import Cosmological_tools as cosmo
 
 ###
 Ho = 70  # Hubble constant today (units = km.s^-1.Mpc^-1)
@@ -36,6 +37,16 @@ def transfer_Function_BKKS(k,Om = 0.3,h= 0.7):
     return res
 
 
+    # Array integral mode :
+def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
+    K = np.array([np.linspace(a, b, n)])
+    dK = (b - a) / n
+    X = np.array([R]).T
+    prod = np.kron(K, X)
+    F = univ.initial_Power_Spectrum_BKKS(K, mode='np') * np.sin(K * X) / (K * X) * K ** 2 / (2 * np.pi ** 2)
+    xsi_model = np.sum(F, axis=1) * dK
+    return(xsi_model)
+
 def window(y):
     '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
     return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
@@ -50,7 +61,7 @@ def initial_Power_Spectrum_BKKS(K):
     return (As * np.multiply(np.power(K,ns),np.power(transfer_Function_BKKS(K),2)))
 
 #==================================
-def main():
+def main(saveCorr = -1):
 #==================================
 
 
@@ -142,7 +153,7 @@ def main():
     #     # Computing correlation. # NE PAS TOUT CALCULER
     
     # val = {}
-    # points = np.random.randint(0,nc/2,size = (1000000,6))
+    # points = np.random.randint(0,nc/2,size = (10000000,6))
     # # normsup = 15#nc//2
     # # points =rP.randomPoints(1, normsup ,100,n = 10000)
     # # points = points+nc//2-np.max(points)//2
@@ -263,7 +274,7 @@ def main():
     Xsi = []
     for key in val.keys():
         if len(val[key]) > 0:#nc**2/2:
-            if key*dx**2<210**2 and key*dx**2>10**2: #do not count over 200 Mpc and under 20Mpc (non-linear regime)
+            if key*dx**2<220**2 and key*dx**2>15**2: #do not count over 215 Mpc and under 10Mpc (non-linear regime)
                 # # # # Xsi = Xsi + val[key]
                 # # # # X = X + [np.sqrt(key)*dx]*len(val[key])
                 Xsi.append(np.mean(val[key])) #biased correlation estimation,
@@ -271,65 +282,70 @@ def main():
                 # Xsi.append(np.mean(val[key])/c**2)
                 X.append(np.sqrt(key) * dx)
 
-
-    # #     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
-    # # # # print(X,Xsi)
-    plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
-    # # # # axs[1,1].set_ylabel('Correlation function estimation')
-    # # # # axs[1,1].set_xlabel('Radial distance (Mpc)')
-
-    # print(np.max(X))
-    # # Correlation bins
-    print(len(val.keys()))
-    nbins = 20
-    # beginbins = np.linspace(0,np.max(X),nbins)
-    beginbins = np.linspace(1,210,nbins)
-    bins = []
-    stdbins = []
-    for i in range(nbins-1):
-        tempbin = []
-        for j in range(len(X)):
-            if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
-                tempbin.append(Xsi[j])
-        bins.append(np.mean(tempbin))
-        stdbins.append(np.std(tempbin))
-    print('Plotting correlation...')
-    # print(stdbins)
-    axs[1,1].errorbar(beginbins[:-1]+0.5*np.max(X)/nbins,bins, yerr=stdbins,ecolor= 'red')
-
-# Reference correlation
-    xref, yref = readtxt('xsi.txt')
-    xref,yref = np.array(xref), np.array(yref)
-    selection = (xref>=10)&(xref<=210)
-    xref,yref = xref[selection], yref[selection]
-    axs[1,1].plot(xref, yref,color = 'red')
-    # axs[1,1].semilogx()
-    # axs[1,1].semilogy()
-    axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
-    #
-
-    # Analytical fourier⁻1
-    f = lambda k,x : initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-    xr = np.linspace(20,200,50)
-    y = [intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in xr]
-    axs[1,1].plot(xr, y,color = 'red',linestyle = '--')
-    
-    plt.xlim([15,100])
-    plt.ylim([-0.025,0.2])
-    plt.show()
-
-    # np.savetxt('heavy files/binsCorr3',beginbins[:-1]+0.5*np.max(X)/nbins)
-    # np.savetxt('heavy files/Corr3',np.ravel(bins))
-    # np.savetxt('heavy files/stdCorr3',np.ravel(stdbins))
+    if saveCorr == -1:
+        # #     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
+        # # # # print(X,Xsi)
+        plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
+        # # # # axs[1,1].set_ylabel('Correlation function estimation')
+        # # # # axs[1,1].set_xlabel('Radial distance (Mpc)')
 
 
+        # print(np.max(X))
+        # # Correlation bins
+        print(len(val.keys()))
+        nbins = 20
+        # beginbins = np.linspace(0,np.max(X),nbins)
+        a,b = 20,220
+        beginbins = np.linspace(a,b,nbins)
+        bins = []
+        stdbins = []
+        for i in range(nbins-1):
+            tempbin = []
+            for j in range(len(X)):
+                if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
+                    tempbin.append(Xsi[j])
+            bins.append(np.mean(tempbin))
+            stdbins.append(np.std(tempbin))
+        print('Plotting correlation...')
+        # print(stdbins)
+        step = (b-a)/nbins
+        axs[1,1].errorbar(beginbins[:-1]+0.5*step,bins, yerr=stdbins,ecolor= 'red')
+
+    # Reference correlation
+        xref, yref = readtxt('xsi.txt')
+        xref,yref = np.array(xref), np.array(yref)
+        selection = (xref>=15)&(xref<=220)
+        xref,yref = xref[selection], yref[selection]
+        axs[1,1].plot(xref, yref,color = 'red')
+        # axs[1,1].semilogx()
+        # axs[1,1].semilogy()
+        #
+
+        # Analytical fourier⁻1
+        # f = lambda k,x : initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
+        xr = np.linspace(15,220,50)
+        # y = [intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in xr]
+        y = integralXsi(xr,cosmo.Cosmology())
+        axs[1,1].plot(xr, y,color = 'red',linestyle = '--')
+        
+        axs[1,1].set_xlim([15,220])
+        axs[1,1].set_ylim([-0.025,0.25])
+        axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
+        plt.show()
+    else:
+        #MonteCarlo index = save
+        np.savetxt('heavy files/binsCorrBox'+str(saveCorr)+'.txt',X)
+        np.savetxt('heavy files/CorrBox'+str(saveCorr)+'.txt',Xsi)
+        # np.savetxt('heavy files/stdCorrBox',np.ravel(stdbins))
 
 
-#==================================
-if __name__ == "__main__":
-#==================================
 
-    main()
+
+# #==================================
+# if __name__ == "__main__":
+# #==================================
+
+#     main()
 
     
     #ref
@@ -354,3 +370,39 @@ if __name__ == "__main__":
     # plt.legend(['Reference', 'Box'])
 
     # plt.show()
+
+##################### Monte-Carlo, std on Correlation #############################
+#FIRst EVALUATE xsis etc
+# for i in range(10):
+#     print('Iteration ', str(i))
+#     main(saveCorr = i)
+
+# Then compute uncertainties
+# XSIs = []
+# for i in range(10):
+#     XSIs.append(np.loadtxt('heavy files/CorrBox'+str(i)+'.txt'))
+
+# np.savetxt('heavy files/XSISCorrBox.txt',XSIs)
+# Cov = np.cov(np.array(XSIs).T)
+# np.savetxt('heavy files/stdCorrBox.txt',np.sqrt(np.diag(Cov)))
+
+#Then plot
+# #ref
+# xref, yref = readtxt('xsi.txt')
+# xref,yref = np.array(xref), np.array(yref)
+# selection = (xref>=15)&(xref<=220)
+# xref,yref = xref[selection], yref[selection]
+xref = np.linspace(15,220,100)
+yref = integralXsi(xref,cosmo.Cosmology())
+plt.plot(xref, yref,color = 'red')
+
+    #computed
+x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
+y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
+std = np.loadtxt('heavy files/stdCorrBox.txt')
+plt.errorbar(x,y,yerr=(std),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+plt.scatter(x,y,color = 'blue',marker = '+',linewidths = 0.7)
+plt.xlabel('Radial Distance (Mpc)')
+plt.ylabel(r'$\xi(r) $')
+plt.legend(['Reference', 'Box'])
+plt.show()

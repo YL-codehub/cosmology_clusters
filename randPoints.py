@@ -28,8 +28,8 @@ def randomPoints(norminf,normsup,number,n = 5):
 def int_sphere(R):
     '''returns int coordinates of points in a sphere of a given radius'''
     radius = np.linspace(1,R,R)
-    theta = np.linspace(0,np.pi,10*R,endpoint = False)
-    phi = np.linspace(0,2*np.pi,10*R,endpoint = False)
+    theta = np.linspace(0,np.pi,30*R,endpoint = False)
+    phi = np.linspace(0,2*np.pi,30*R,endpoint = False)
     X = np.array([np.ravel([[[r*np.sin(t)*np.cos(p) for r in radius] for t in theta] for p in phi])]).T
     Y = np.array([np.ravel([[[r*np.sin(t)*np.sin(p) for r in radius] for t in theta] for p in phi])]).T
     Z = np.array([np.ravel([[[r*np.cos(t) for r in radius]  for t in theta] for p in phi])]).T
