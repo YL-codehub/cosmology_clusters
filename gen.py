@@ -167,8 +167,8 @@ def main(saveCorr = -1):
     #     except KeyError:
     #         val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
 
-#    ####### Computing correlation WITH CIRCLES # NE PAS TOUT CALCULER
-    radius = 8
+# #    ####### Computing correlation WITH CIRCLES # NE PAS TOUT CALCULER
+    radius = 10
     val = {}
     points = np.random.randint(radius+1,nc-radius,size = (10000,3))
     # normsup = 15#nc//2
@@ -333,6 +333,7 @@ def main(saveCorr = -1):
         axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
         plt.show()
     else:
+        delta_new.tofile('heavy files/box'+str(saveCorr)+'nc'+str(int(nc))+'dx'+str(int(dx)))
         #MonteCarlo index = save
         np.savetxt('heavy files/binsCorrBox'+str(saveCorr)+'.txt',X)
         np.savetxt('heavy files/CorrBox'+str(saveCorr)+'.txt',Xsi)
@@ -373,36 +374,40 @@ def main(saveCorr = -1):
 
 ##################### Monte-Carlo, std on Correlation #############################
 #FIRst EVALUATE xsis etc
-# for i in range(10):
+# for i in range(20):
 #     print('Iteration ', str(i))
 #     main(saveCorr = i)
 
 # Then compute uncertainties
 # XSIs = []
-# for i in range(10):
+# for i in range(15):
 #     XSIs.append(np.loadtxt('heavy files/CorrBox'+str(i)+'.txt'))
 
 # np.savetxt('heavy files/XSISCorrBox.txt',XSIs)
 # Cov = np.cov(np.array(XSIs).T)
 # np.savetxt('heavy files/stdCorrBox.txt',np.sqrt(np.diag(Cov)))
 
-#Then plot
+# #Then plot
 # #ref
 # xref, yref = readtxt('xsi.txt')
 # xref,yref = np.array(xref), np.array(yref)
 # selection = (xref>=15)&(xref<=220)
 # xref,yref = xref[selection], yref[selection]
-xref = np.linspace(15,220,100)
-yref = integralXsi(xref,cosmo.Cosmology())
-plt.plot(xref, yref,color = 'red')
+# xref = np.linspace(15,220,100)
+# yref = integralXsi(xref,cosmo.Cosmology())
+# plt.plot(xref, yref,color = 'red')
 
-    #computed
-x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
-y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
-std = np.loadtxt('heavy files/stdCorrBox.txt')
-plt.errorbar(x,y,yerr=(std),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
-plt.scatter(x,y,color = 'blue',marker = '+',linewidths = 0.7)
-plt.xlabel('Radial Distance (Mpc)')
-plt.ylabel(r'$\xi(r) $')
-plt.legend(['Reference', 'Box'])
-plt.show()
+#     #computed
+# x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
+# y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
+# std = np.loadtxt('heavy files/stdCorrBox.txt')
+# plt.errorbar(x,y,yerr=(std),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+# plt.scatter(x,y,color = 'blue',marker = '+',linewidths = 0.7)
+# plt.xlabel('Radial Distance (Mpc)')
+# plt.ylabel(r'$\xi(r) $')
+# plt.legend(['Reference', 'Box'])
+# plt.show()
+
+
+
+# gérer les abberances.

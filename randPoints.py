@@ -38,7 +38,17 @@ def int_sphere(R):
     res = res.astype(int)
     res = np.unique(res,axis = 0)
     return res
+
+def int_sphere2(R):
+    '''returns int coordinates of points in a sphere of a given radius'''
+    ijk = np.array([[[[i-R, j-R, k-R] for k in range(2*R+1)] for j in range(2*R+1)] for i in range(2*R+1)])
+    selection = (np.linalg.norm(ijk,axis = 3)<=R)
+    return(ijk[selection])
     
+# print(len(int_sphere2(3)))
 # for el in int_sphere(1):
-#     print(el)
-# # int_sphere(1)
+# #     print(el)
+# print(len(int_sphere(3)))
+
+#bref impossible.
+# effets de coins à gérer.

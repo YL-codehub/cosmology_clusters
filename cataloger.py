@@ -152,13 +152,13 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
     print('Drawing points...')
-    c = -1/np.min(delta_new2)
-    c = 0.2 #valeur commune
+    # c = -1/np.min(delta_new2)
+    # c = 0.2 #valeur commune
     def pdf():
         '''3D probability probability'''
-        # h = (delta_new2>=-1)*(1+delta_new2) #method 1
+        h = (delta_new2>=-1)*(1+delta_new2) #method 1
         # h = delta_new2-np.min(delta_new2) #method 2
-        h = 1+c*delta_new2
+        # h = 1+c*delta_new2
         h = h/np.sum(h)
         return h
 
@@ -255,13 +255,29 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
 
 #######################cataloger MonteCarlo###########################
 
-nc = 256
-dx = 20
-delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
-delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
+# nc = 256
+# dx = 20
+# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
+# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+# # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
 
-for i in range(20):
-    print('Iteration: ',i)
-    print('-------------------')
-    create_catalog_draw(delta_new2,dx = dx, number = 500000,plot = False,MonteCarloIndex=i)
+# for i in range(20):
+#     print('Iteration: ',i)
+#     print('-------------------')
+#     create_catalog_draw(delta_new2,dx = dx, number = 500000,plot = False,MonteCarloIndex=i)
+
+#######################cataloger MonteCarlo on different bx###########################
+
+# nc = 256
+# dx = 20
+# # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
+
+# for i in range(20):
+#     print('Iteration: ',i)
+#     print('-------------------')
+#     delta_new2 = np.fromfile('heavy files/box'+str(i)+'nc'+str(nc)+'dx'+str(int(dx)))
+#     delta_new2 = np.reshape(delta_new2,(nc,nc,nc))  
+#     create_catalog_draw(delta_new2,dx = dx, number = 200000,plot = False, MonteCarloIndex=i)
+
+
+
