@@ -42,7 +42,6 @@ def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
     K = np.array([np.linspace(a, b, n)])
     dK = (b - a) / n
     X = np.array([R]).T
-    prod = np.kron(K, X)
     F = univ.initial_Power_Spectrum_BKKS(K, mode='np') * np.sin(K * X) / (K * X) * K ** 2 / (2 * np.pi ** 2)
     xsi_model = np.sum(F, axis=1) * dK
     return(xsi_model)
@@ -135,15 +134,17 @@ def main(saveCorr = -1):
 
     print('Computing correlation...')
     print('...Evaluating...')
-    # # # Computing correlation. # NE PAS TOUT CALCULER
+    # # # Computing correlation. # NE PAS TOUT CALCULER, just a sub-box
     # val = {}
     # n =1
-    # for i1 in range(nc):
-    #     for i2 in range(nc):
-    #         for j1 in range(nc):
-    #             for j2 in range(nc):
-    #                 for k1 in range(nc):
-    #                     for k2 in range(nc):
+    # p = 10
+    # mid = nc//2
+    # for i1 in range(mid-p,mid+p):
+    #     for i2 in range(mid-p,mid+p):
+    #         for j1 in range(mid-p,mid+p):
+    #             for j2 in range(mid-p,mid+p):
+    #                 for k1 in range(mid-p,mid+p):
+    #                     for k2 in range(mid-p,mid+p):
     #                         ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
     #                         try:
     #                             val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
@@ -168,25 +169,25 @@ def main(saveCorr = -1):
     #         val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
 
 # #    ####### Computing correlation WITH CIRCLES # NE PAS TOUT CALCULER
-    radius = 10
-    val = {}
-    points = np.random.randint(radius+1,nc-radius,size = (10000,3))
-    # normsup = 15#nc//2
-    # points =rP.randomPoints(1, normsup ,100,n = 10000)
-    # points = points+nc//2-np.max(points)//2
-    neighbours  = rP.int_sphere(radius)
-    # print(neighbours.shape)
-    for point in points:
-        # i1,i2,j1,j2,k1,k2 = pair
-        i1,j1,k1 = tuple(point)
-        for neighbour in neighbours:
-            i2,j2,k2 = tuple(neighbour)
-            ind = int((i2) ** 2 + (j2) ** 2+ (k2) ** 2)
-            # if (i1+i2>=0)&(j1+j2>=0)&(k1+k2>= 0)&(i1+i2<=nc)&(j1+j2<=nc)&(k1+k2<=nc):
-            try:
-                val[ind].append(delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2])
-            except KeyError:
-                val[ind] = [delta_new[i1, j1, k1] * delta_new[i1+i2, j1+j2, k1+k2]]
+    # radius = 10
+    # val = {}
+    # points = np.random.randint(radius+1,nc-radius-1,size = (10000,3)) #10 000 useful to avoid discriminations betw numbers of low and big distances
+    # neighbours  = rP.int_sphere2(radius)
+    # # # neighbours  = rP.int_sphere(radius)
+    # # print(neighbours.shape)
+    # # neighbours  = rP.sphere4(radius,1000)
+    # for point in points:
+    #     # i1,i2,j1,j2,k1,k2 = pair
+    #     i1,j1,k1 = tuple(point)
+    #     for neighbour in neighbours:
+    #         i2,j2,k2 = tuple(neighbour)
+    #         # ind = int((i2) ** 2 + (j2) ** 2+ (k2) ** 2)
+    #         ind = (i2) ** 2 + (j2) ** 2+ (k2) ** 2
+    #         # if (i1+i2>=0)&(j1+j2>=0)&(k1+k2>= 0)&(i1+i2<=nc)&(j1+j2<=nc)&(k1+k2<=nc):
+    #         try:
+    #             val[ind].append(delta_new[i1, j1, k1] * delta_new[i1+int(i2), j1+int(j2), k1+int(k2)])
+    #         except KeyError:
+    #             val[ind] = [delta_new[i1, j1, k1] * delta_new[i1+int(i2), j1+int(j2), k1+int(k2)]]
 #     #
 #     # # # Computing correlation on threshold-chosen values. # NE PAS TOUT CALCULER
 #
@@ -268,53 +269,102 @@ def main(saveCorr = -1):
 #     #         except KeyError:
 #     #             val[ind] = [delta_new_selected[i] * delta_new_selected[j]]
 #
-#
-    print('...Binning...')
-    X = []
-    Xsi = []
-    for key in val.keys():
-        if len(val[key]) > 0:#nc**2/2:
-            if key*dx**2<220**2 and key*dx**2>15**2: #do not count over 215 Mpc and under 10Mpc (non-linear regime)
-                # # # # Xsi = Xsi + val[key]
-                # # # # X = X + [np.sqrt(key)*dx]*len(val[key])
-                Xsi.append(np.mean(val[key])) #biased correlation estimation,
-                   ### if method 3 only:
-                # Xsi.append(np.mean(val[key])/c**2)
-                X.append(np.sqrt(key) * dx)
+
+
+    # val = {}
+    # points = np.random.randint(0,nc/2,size = (10000000,6))
+    # # normsup = 15#nc//2
+    # # points =rP.randomPoints(1, normsup ,100,n = 10000)
+    # # points = points+nc//2-np.max(points)//2
+
+    # for pair in points:
+    #     # i1,i2,j1,j2,k1,k2 = pair
+    #     i1,j1,k1,i2,j2,k2 = tuple(pair)
+    #     ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
+    #     try:
+    #         val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
+    #     except KeyError:
+    #         val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
+
+#### Random points and pairs then :
+    # a,b = 20,220
+    # BinStep = 10
+    # val = {}
+    # points = np.random.uniform(nc//2-b/(2*dx),nc//2+b/(2*dx),size = (10000,3))
+    # # # normsup = 15#nc//2
+    # # # points =rP.randomPoints(1, normsup ,100,n = 10000)
+    # # # points = points+nc//2-np.max(points)//2
+    # for i in range(len(points)):
+    #     for j in range(i,len(points)):
+    #         i1, j1, k1 = points[i,:]
+    #         i2, j2, k2 = points[j,:]
+    #         norm = np.sqrt((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
+    #         q = np.round(norm/BinStep)
+    #         ind = q*BinStep
+    #         try:
+    #             val[ind].append(delta_new[int(i1), int(j1), int(k1)] * delta_new[int(i2), int(j2), int(k2)])
+    #         except KeyError:
+    #             val[ind] = [delta_new[int(i1), int(j1), int(k1)] * delta_new[int(i2), int(j2), int(k2)]]
+
+#Binning vfinale :
+    # print('...Binning...')
+    # bins = []
+    # Xsi = []
+    # stdbins = []
+    # for key in val.keys():
+    #     if len(val[key]) > 0:#nc**2/2:
+    #         if key*dx<=b+BinStep/2 and key*dx>=a-BinStep/2 : #do not count over 215 Mpc and under 10Mpc (non-linear regime)
+    #             Xsi.append(np.mean(val[key])) #biased correlation estimation,
+    #             bins.append(key*dx)
+    #             stdbins.append(np.std(val[key]))
+                
+
+#Binning classique :
+    # print('...Binning...')
+    # X = []
+    # Xsi = []
+    # for key in val.keys():
+    #     if len(val[key]) > 0:#nc**2/2:
+    #         if key*dx**2<220**2 and key*dx**2>15**2 : #do not count over 215 Mpc and under 10Mpc (non-linear regime)
+    #         # if key in [k**2 for k in range(15)]:
+    #             # # # # Xsi = Xsi + val[key]
+    #             # # # # X = X + [np.sqrt(key)*dx]*len(val[key])
+    #             Xsi.append(np.mean(val[key])) #biased correlation estimation,
+    #             print(key,np.sqrt(key) * dx,len(val[key]),np.mean(val[key]))
+    #                ### if method 3 only:
+    #             # Xsi.append(np.mean(val[key])/c**2)
+    #             X.append(np.sqrt(key) * dx)
+
 
     if saveCorr == -1:
-        # #     # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
-        # # # # print(X,Xsi)
+        ##### plot final binning
+        # plt.scatter(bins,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
+        # axs[1,1].errorbar(bins,Xsi, yerr=stdbins,ecolor= 'red')
+
+        # ##### Classic binning
         plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
-        # # # # axs[1,1].set_ylabel('Correlation function estimation')
-        # # # # axs[1,1].set_xlabel('Radial distance (Mpc)')
-
-
-        # print(np.max(X))
-        # # Correlation bins
-        print(len(val.keys()))
-        nbins = 20
-        # beginbins = np.linspace(0,np.max(X),nbins)
+        nbins = 10
         a,b = 20,220
-        beginbins = np.linspace(a,b,nbins)
+        step = (b-a)/nbins
+        centerbins = np.linspace(a,b,nbins+1)
+        print(centerbins)
         bins = []
         stdbins = []
-        for i in range(nbins-1):
+        for i in range(len(centerbins)):
             tempbin = []
             for j in range(len(X)):
-                if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
+                if X[j]>= centerbins[i]-step/2 and X[j]< centerbins[i]+step/2:
                     tempbin.append(Xsi[j])
             bins.append(np.mean(tempbin))
             stdbins.append(np.std(tempbin))
         print('Plotting correlation...')
         # print(stdbins)
-        step = (b-a)/nbins
-        axs[1,1].errorbar(beginbins[:-1]+0.5*step,bins, yerr=stdbins,ecolor= 'red')
+        axs[1,1].errorbar(centerbins,bins, yerr=stdbins,ecolor= 'red')
 
     # Reference correlation
         xref, yref = readtxt('xsi.txt')
         xref,yref = np.array(xref), np.array(yref)
-        selection = (xref>=15)&(xref<=220)
+        selection = (xref>=10)&(xref<=230)
         xref,yref = xref[selection], yref[selection]
         axs[1,1].plot(xref, yref,color = 'red')
         # axs[1,1].semilogx()
@@ -328,23 +378,24 @@ def main(saveCorr = -1):
         y = integralXsi(xr,cosmo.Cosmology())
         axs[1,1].plot(xr, y,color = 'red',linestyle = '--')
         
-        axs[1,1].set_xlim([15,220])
-        axs[1,1].set_ylim([-0.025,0.25])
+        # axs[1,1].set_xlim([15,220])
+        # axs[1,1].set_ylim([-0.025,0.25])
         axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
+        plt.tight_layout()
         plt.show()
     else:
         delta_new.tofile('heavy files/box'+str(saveCorr)+'nc'+str(int(nc))+'dx'+str(int(dx)))
         #MonteCarlo index = save
-        np.savetxt('heavy files/binsCorrBox'+str(saveCorr)+'.txt',X)
-        np.savetxt('heavy files/CorrBox'+str(saveCorr)+'.txt',Xsi)
+        # np.savetxt('heavy files/binsCorrBox'+str(saveCorr)+'.txt',X)
+        # np.savetxt('heavy files/CorrBox'+str(saveCorr)+'.txt',Xsi)
         # np.savetxt('heavy files/stdCorrBox',np.ravel(stdbins))
 
 
 
 
-# #==================================
+# ==================================
 # if __name__ == "__main__":
-# #==================================
+# ==================================
 
 #     main()
 
@@ -374,13 +425,13 @@ def main(saveCorr = -1):
 
 ##################### Monte-Carlo, std on Correlation #############################
 #FIRst EVALUATE xsis etc
-# for i in range(20):
-#     print('Iteration ', str(i))
-#     main(saveCorr = i)
+for i in range(10,20):
+    print('Iteration ', str(i))
+    main(saveCorr = i)
 
 # Then compute uncertainties
 # XSIs = []
-# for i in range(15):
+# for i in range(10):
 #     XSIs.append(np.loadtxt('heavy files/CorrBox'+str(i)+'.txt'))
 
 # np.savetxt('heavy files/XSISCorrBox.txt',XSIs)
@@ -409,5 +460,3 @@ def main(saveCorr = -1):
 # plt.show()
 
 
-
-# gérer les abberances.

@@ -158,66 +158,6 @@ def Comov2z(r):
 # plt.ylabel('Correlation estimator')
 # plt.show()
 
-#####################fast distances matrix#################
-# import scipy.spatial as sp
-
-# # ref = t.time()
-# Catalog = np.loadtxt('thresholdcatalog.txt')
-# # n = Catalog.shape[0] #counts number
-# zmax = np.max(Catalog[:,0])
-# Catalog = sph2cart(Catalog)[:n,:] # au-dessus de 10000 trop lourd
-# # plotDraw(Catalog)
-# ## random catalog creation, conserving counts density
-# rand_radius = 3*zmax
-# rand_n = int((rand_radius/zmax)**3)*n
-# # print(rand_n) #do not exceed 18 000... for RAM safety
-# randomCatalog = random_Ball(radius=rand_radius,n=rand_n)
-# # print(t.time()-ref)
-
-# #plot Catalog
-# # plotDraw(Catalog)
-
-# # ref = t.time()
-# distancesDD = sp.distance_matrix(Catalog,Catalog,2)
-# distancesDR = sp.distance_matrix(Catalog,randomCatalog,2)
-# distancesRR = sp.distance_matrix(randomCatalog,randomCatalog,2)
-# # print(t.time()-ref)
-
-# dr = 10
-# # r = np.array([0.5,0.7])
-# step = 10
-# # zmax = 20
-# r = np.array(np.linspace(dr/2,2*zmax,int((2*zmax-dr/2)/step)+1))
-
-# def numberPairs(Dist,r,dr):
-#     '''Dist is the distance matrix from two catalogs.
-#     r is the np.linspace with all the distances on which bins are centered
-#     dr is the width of a distance bin'''
-#     return(((Dist>r[:,None,None]-dr/2)&(Dist<r[:,None,None]+dr/2)).sum(axis=(1,2)))
-
-
-# DD = numberPairs(distancesDD,r,dr)
-# DR = numberPairs(distancesDR,r,dr)
-# RR = numberPairs(distancesRR,r,dr)
-# Xsi = (DD-2*DR+RR)/RR
-# plt.plot(r,Xsi)
-
-# #ref
-# xref, yref = readtxt('xsi.txt')
-# plt.scatter(xref, yref,linewidths=0.05,color = 'yellow')
-# plt.legend(['Mine ','Ref'])
-
-# plt.show()
-# print(Xsi)
-
-
-# #####################nbodykit#####################""
-def convert_cartesian_to_sky_full_angle(X,Y,Z):
-    RA = np.arctan2(X,Z)
-    DEC = np.arcsin(Y/np.sqrt(X**2 + Y**2 + Z**2))
-    r = np.sqrt(X**2 + Y**2 + Z**2)
-    return(r,RA,DEC) #RA = phi, DEC = pi/2-theta
-
 def random_Ball(radius, n, Sig = np.identity(3), mode = 'sphere',finv = None):
     if mode == 'sphere':
         C = st.multivariate_normal(cov = Sig).rvs(size=n)
@@ -241,14 +181,85 @@ def random_Ball(radius, n, Sig = np.identity(3), mode = 'sphere',finv = None):
         sphereTruth = (np.linalg.norm(C,axis = 1)<=radius)
         C = C[sphereTruth,:]
         return C[:n,:]
+#####################fast distances matrix#################
+import scipy.spatial as sp
 
-from nbodykit.algorithms.paircount_tpcf import tpcf
-from nbodykit.lab import ArrayCatalog
-import nbodykit.cosmology.cosmology as cosm
+# ref = t.time()
+
+Catalog = np.loadtxt('heavy files/BigCatalogContinuous0.txt')
+Catalog = np.nan_to_num(Catalog)
+# Catalog = np.loadtxt('thresholdcatalog.txt')
+n = Catalog.shape[0] #counts number
+print("Catalog size :",n)
+rmax = np.max(Catalog[:,0])
+Catalog = sph2cart(Catalog)[:n,:] # au-dessus de 10000 trop lourd
+# plotDraw(Catalog)
+## random catalog creation, conserving counts density
+# rand_radius = 3*zmax
+# rand_n = int((rand_radius/zmax)**3)*n
+rand_n = n
+# print(rand_n) #do not exceed 18 000... for RAM safety
+randomCatalog = random_Ball(radius=rmax,n=rand_n)
+# print(t.time()-ref)
+
+#plot Catalog
+# plotDraw(Catalog)
+
+# ref = t.time()
+distancesDD = sp.distance_matrix(Catalog,Catalog,2)
+distancesDR = sp.distance_matrix(Catalog,randomCatalog,2)
+distancesRR = sp.distance_matrix(randomCatalog,randomCatalog,2)
+# print(t.time()-ref)
+a,b = 20, 220
+dr = 10
+# r = np.array([0.5,0.7])
+step = (b-a)/10
+# zmax = 20
+r = np.array(np.linspace(a,b,int((b-a)/dr)+1))
+
+def numberPairs(Dist,r,dr):
+    '''Dist is the distance matrix from two catalogs.
+    r is the np.linspace with all the distances on which bins are centered
+    dr is the width of a distance bin'''
+    return(((Dist>r[:,None,None]-dr/2)&(Dist<r[:,None,None]+dr/2)).sum(axis=(1,2)))
+
+
+DD = numberPairs(distancesDD,r,dr)
+DR = numberPairs(distancesDR,r,dr)
+RR = numberPairs(distancesRR,r,dr)
+Xsi = (DD-2*DR+RR)/RR
+plt.scatter(r,Xsi,marker ='+')
+
+#ref
+
+xref, yref = readtxt('xsi.txt')
+xref,yref = np.array(xref), np.array(yref)
+selection = (xref>=15)&(xref<=r[-1])
+xref,yref = xref[selection], yref[selection]
+plt.xlabel('Radial distance (Mpc)')
+plt.ylabel(r'$\xi(r)$')
+plt.plot(xref, yref,color = 'black')
+plt.legend(['Mine','Ref'])
+plt.show()
+
+
+# #####################nbodykit#####################""
+def convert_cartesian_to_sky_full_angle(X,Y,Z):
+    RA = np.arctan2(X,Z)
+    DEC = np.arcsin(np.nan_to_num(Y/np.sqrt(X**2 + Y**2 + Z**2)))
+    r = np.sqrt(X**2 + Y**2 + Z**2)
+    return(r,RA,DEC) #RA = phi, DEC = pi/2-theta
+
+
+
+# from nbodykit.algorithms.paircount_tpcf import tpcf
+# from nbodykit.lab import ArrayCatalog
+# import nbodykit.cosmology.cosmology as cosm
 
 # print('Reading and compiling catalog...')
 
-# Catalog = np.loadtxt('heavy files/BigCatalogTest2.txt')
+# Catalog = np.loadtxt('heavy files/BigCatalogContinuous0.txt')
+# Catalog = np.nan_to_num(Catalog)
 # # Catalog = np.loadtxt('thresholdcatalog.txt')
 # n = Catalog.shape[0] #counts number
 # print("Catalog size :",n)
@@ -259,7 +270,7 @@ import nbodykit.cosmology.cosmology as cosm
 # print('Creating randomized catalog...')
 
 # # ## randomCatalog from uniform
-# rand_n = 3*n
+# rand_n = 5*n
 
 # randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
 # # print('...and in spherical coordinates...')
@@ -330,42 +341,42 @@ import nbodykit.cosmology.cosmology as cosm
 
 # ###################MonteCarlo##################
 
-a,b = 15,225
-steps = 10
-bins = np.linspace(a,b,int((b-a)/steps)+1)
+# a,b = 15,225
+# steps = 10
+# bins = np.linspace(a,b,int((b-a)/steps)+1)
 
-class FakeCosmo(object):
-            def comoving_distance(self, z):
-                return z
-C = FakeCosmo()
-XSIS = []
+# class FakeCosmo(object):
+#             def comoving_distance(self, z):
+#                 return z
+# C = FakeCosmo()
+# XSIS = []
 
-for i in range(15,20):
-    print('Iteration: ',i)
-    Catalog = np.loadtxt('heavy files/BigCatalogTest'+str(i)+'.txt')
-    n = Catalog.shape[0] #counts number
-    rmax = np.max(Catalog[:,0])
-    data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
+# for i in range(1):
+#     print('Iteration: ',i)
+#     Catalog = np.loadtxt('heavy files/BigCatalogTest'+str(i)+'.txt')
+#     n = Catalog.shape[0] #counts number
+#     rmax = np.max(Catalog[:,0])
+#     data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
-    rand_n = 1*n
+#     rand_n = 3*n
 
-    randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
-    r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
-    random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
+#     randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
+#     r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
+#     random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
 
-    Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
+#     Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
 
-    res = Xsi.corr.data
-    r = [el[1] for el in res]
-    xsi = [el[0] for el in res]
-    # print(xsi)
-    XSIS.append(xsi)
-    np.savetxt('heavy files/binsCorrBigTest'+str(i)+'.txt',r)
-    np.savetxt('heavy files/CorrBigTest'+str(i)+'.txt',xsi)
-    np.savetxt('heavy files/stdCorrMC'+str(i)+'.txt',np.sqrt(np.diag(Cov)))
+#     res = Xsi.corr.data
+#     r = [el[1] for el in res]
+#     xsi = [el[0] for el in res]
+#     # print(xsi)
+#     # XSIS.append(xsi)
+#     np.savetxt('heavy files/binsCorrBigTest'+str(i)+'.txt',r)
+#     np.savetxt('heavy files/CorrBigTest'+str(i)+'.txt',xsi)
+#     # np.savetxt('heavy files/stdCorrMC'+str(i)+'.txt',np.sqrt(np.diag(Cov)))
 
-np.savetxt('heavy files/BigTestXSIs.txt',XSIS)
+# # np.savetxt('heavy files/BigTestXSIs.txt',XSIS)
 
 
 # ########### Big Correlation ###########

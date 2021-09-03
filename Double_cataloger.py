@@ -1,3 +1,4 @@
+from numpy.core.fromnumeric import mean
 import scipy.optimize as opt
 import Cosmological_tools as cosmo
 import numpy as np
@@ -110,6 +111,83 @@ class doubleCatalog:
         #         self.bins[nbin] = {'Mmin':Mmin[i], 'zmin':zmin[j], 'latt':None, 'long':None, 'counts':N[i,j]}
         #         # print(self.bins[nbin])
         #         nbin +=1
+
+    def GenerateCorrelatedCounts(self,delta_new2, Minf = 1.6e14, Msup = 1e16, zinf = 0, zsup = 3, name = 'Catalog'):
+        # To be integrated in double draw cataloger...
+        '''Artificial counts catalog generator, Ms in solar masses ''' # per deg^2
+        zsup = radialcomov_to_redshift((self.nc/2-1)*dx)-0.1 #avoid border effects
+        print(zsup)
+        a,b = m.log(Minf, 10), m.log(Msup, 10)
+        self.universe = cosmo.Cosmology()#H_0 = H_0, Omega_m = Omega_m, Omega_r = Omega_r, Omega_v = Omega_v, Omega_T = Omega_T, sigma_8 = sigma_8, n_s = n_s)
+
+
+        self.Mmin = np.power(10, np.linspace(a, b, int((b - a) / self.logM_intervals) + 1))
+        self.Mmax = self.Mmin * 10 ** self.logM_intervals
+        self.zmin = np.linspace(zinf, zsup, int((zsup - zinf) / self.z_intervals) + 1)
+        self.zmax = self.zmin + self.z_intervals
+
+        # means_poisson = self.universe.expected_Counts(Mmin, Mmax, zmin, zmax, mode = 'superarray')
+        # N = np.random.poisson(means_poisson)
+        nc = len(delta_new2)
+        
+        print('Arraying...')
+        b = np.array([[[[i,j,k] for i in range(nc)] for j in range(nc)] for k in range(nc)])
+        print('Sphericalizing...')
+        mid = len(b)//2
+        r, elev, az = cart2sph(b[:,:,:,0]-mid,b[:,:,:,1]-mid,b[:,:,:,2]-mid,mode = 'np')
+
+        # # No Newton
+        print('Redshifting...')
+        from scipy import interpolate
+        step = 0.01
+        zmax = radialcomov_to_redshift(r.max()*dx)+0.1
+        Z = np.linspace(0,zmax, int((zmax-0)/step)+1)
+        temp = cosmo.Cosmology()
+        R = [temp.comoving_Distance(z) for z in Z]
+        f = interpolate.interp1d(R, Z)
+        Redshifts = f(r*dx)
+
+
+        Dp = [temp.Dplus(z,mode = 'np') for z in Z]
+        g = interpolate.interp1d(Z,Dp)
+        Dplus = g(Redshifts)
+
+        def Bias_MoWhite(z,M):
+            '''returns Mo & WHite bias for a given z  array and M a solar Mass'''
+            delta_c = 1.686
+            D = g(z)
+            delta_1 = delta_c/D
+            sig0 = self.universe.initial_sigma(M*1e15,mode = 'quad')
+            nu_1 = delta_1/sig0
+            Bias = 1+(np.power(nu_1,2)-1)/delta_1
+            return(Bias)
+
+        nbin = 1
+        self.counts = np.zeros((len(self.zmin),len(self.Mmin)))
+        for i in range(len(self.Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
+            for j in range(len(self.zmin)): # bin [zm, zm+z_interval]
+                ## Mean counts in the bin thanks to theory
+                midz = (self.zmin[j]+self.zmax[j])/2
+                midM = (self.Mmin[i]+self.Mmax[i])/2
+                mean_poisson = self.universe.expected_Counts(self.Mmin[i],self.Mmax[i],self.zmin[j],self.zmax[j],rad2 = 4*np.pi) # per srad
+                delta = np.mean(delta_new2[(self.zmin[j]<=Redshifts)*(Redshifts<=self.zmax[j])])
+                New_mean_poisson = mean_poisson*(1+g(midz)*Bias_MoWhite(midz,midM/1e15)*delta)
+                N = np.random.poisson(New_mean_poisson)
+                
+                ## Draw a RA and DEC
+        #         ## Encode data :
+                self.bins[nbin] = {'Mmin':self.Mmin[i], 'zmin':self.zmin[j], 'latt':None, 'long':None, 'counts':N}
+                self.counts[j,i] = N
+                # print(self.bins[nbin])
+                nbin +=1
+        np.savetxt('heavy files/CorrelatedBins_'+str(self.z_intervals)+'_'+str(self.logM_intervals)+name+'.txt',self.counts)
+        # for i in range(len(Mmin)): #bin [Mm, Mm+Minterval], but exponential dependance
+        #     for j in range(len(zmin)): # bin [zm, zm+z_interval]
+        # #         ## Encode data :
+        #         self.bins[nbin] = {'Mmin':Mmin[i], 'zmin':zmin[j], 'latt':None, 'long':None, 'counts':N[i,j]}
+        #         # print(self.bins[nbin])
+        #         nbin +=1
+
 
     def save_bins(self,name):
         a_file = open(name, "wb")
@@ -303,21 +381,23 @@ class doubleCatalog:
 
 ###########################################################
 ## Verifications :
-#######################cataloger draw###########################
+# #######################cataloger draw###########################
 
 nc = 256
 dx = 20
 delta_new2 = np.fromfile("heavy files/"+'boxnc'+str(nc)+'dx'+str(int(dx)))
 delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
 # print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
-
-#######################Mo & White Bias###########################
-for i in range(20,40):
-    print('Iteration '+str(i))
-    temp = doubleCatalog()
-    temp.Generate(name = 'BigCorrelationCatalog'+str(i))
-    temp.create_catalog_draw(delta_new2,plot = False, name = 'BigCorrelationCatalog'+str(i))
-    print('------------')
+temp = doubleCatalog()
+temp.GenerateCorrelatedCounts(delta_new2)
+print(temp.entries)
+# #######################Mo & White Bias###########################
+# for i in range(20,40):
+#     print('Iteration '+str(i))
+#     temp = doubleCatalog()
+#     temp.Generate(name = 'BigCorrelationCatalog'+str(i))
+#     temp.create_catalog_draw(delta_new2,plot = False, name = 'BigCorrelationCatalog'+str(i))
+#     print('------------')
 
 # res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
 

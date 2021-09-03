@@ -86,7 +86,7 @@ def plot_likelihood(r,xsi,O,S,std,mode = 'diagonal'):
     ## Plot effective correlation versus data
     ax2 = plt.subplot(122)
     #ref
-    xref = r
+    xref = np.linspace(15,230,50)
     yref = integralXsi(xref,cosmo.Cosmology())
     ax2.plot(xref, yref,color = 'black',linewidth = 1)
     #data
@@ -139,7 +139,7 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
         # ref versus data
         ax2 = plt.subplot()
         #ref
-        xref = r
+        xref = np.linspace(15,230,50)
         yref = integralXsi(xref,cosmo.Cosmology())
         ax2.plot(xref, yref,color = 'black',linewidth = 1)
         #data
@@ -191,10 +191,13 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 # x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
 # y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
 # std = np.loadtxt('heavy files/stdCorrBox.txt')
-# plot_likelihood(x, y, np.linspace(0.20,0.40,41),np.linspace(0.7,1.0,41),std)
+x = np.array(np.loadtxt('heavy files/BoxbinsXSIS.txt'))
+y = np.array(np.loadtxt('heavy files/BoxmeanXSIS.txt'))
+std = np.array(np.loadtxt('heavy files/BoxstdXSIS.txt'))
+plot_likelihood(x, y, np.linspace(0.20,0.40,41),np.linspace(0.6,1.0,41),std)
 # print(refineMax(x,y,std,plot=True))
-# # stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
-# # print(refineMax(x,y,stddiag,plot=True))
+# stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
+# print(refineMax(x,y,stddiag,plot=True))
 
 #######################
 # Tests 1 réalisation #
@@ -280,24 +283,28 @@ def integralXsiMode(R,univ,a = 1e-7, b= 1e3,n = 100000,mode = 0):
 
 ######## mean CorrBox
 # XSIs = []
-# for i in range(20):
+# for i in range(10):
 #     xsi_data = np.loadtxt('heavy files/CorrBox'+str(i)+'.txt')
 #     XSIs.append(xsi_data)
 # np.savetxt('heavy files/CorrBoxMean.txt',np.mean(np.array(XSIs),axis = 0))
 # np.savetxt('heavy files/binsCorrBoxMean.txt',np.array(np.loadtxt('heavy files/binsCorrBox0.txt')))
 
 ######### find the best R near data #########:
-number = 'Mean'
+# number = 'Mean'
+# number = 1
 def objective_function(R):
     r = np.array(np.loadtxt('heavy files/binsCorrBox'+str(number)+'.txt'))
+    r = np.delete(r,[25,69,81]) # delete 40Mpc anomaly
     xsi_data = np.array(np.loadtxt('heavy files/CorrBox'+str(number)+'.txt'))
+    xsi_data = np.delete(xsi_data,[25,69,81]) # delete 40Mpc anomaly
     std = np.array(np.loadtxt('heavy files/stdCorrBox.txt'))
+    std = np.delete(std,[25,69,81]) # delete 40Mpc anomaly
     xsi_convolutedR = integralXsiMode(r,cosmo.Cosmology(),mode = R)
     return np.sum(np.power((xsi_convolutedR-xsi_data)/std,2))
 
-import scipy.optimize as opt
-res = opt.minimize(objective_function, [10],options={ 'disp': True}, bounds = ((10,16),)).x
-print('R = ',res)
+# import scipy.optimize as opt
+# res = opt.minimize(objective_function, [10],options={ 'disp': True}, bounds = ((10,16),)).x
+# print('R = ',res)
 
 # # plot 
 # r = np.linspace(15,175,50)
@@ -348,7 +355,7 @@ def refineMaxConvol(r,xsi,std, R,plot = False, mode = 'diagonal'):
         # ref versus data
         ax2 = plt.subplot()
         #ref
-        xref = r
+        xref = np.linspace(np.min(r)-5,np.max(r)+5,200)
         yref = integralXsiMode(xref,cosmo.Cosmology(),mode = R)
         ax2.plot(xref, yref,color = 'black',linewidth = 1)
         #data
@@ -356,7 +363,7 @@ def refineMaxConvol(r,xsi,std, R,plot = False, mode = 'diagonal'):
         # refined
         universe = cosmo.Cosmology(Omega_m=sol[0],Omega_v=1-sol[0], sigma_8=sol[1])
         
-        xsi_model = integralXsi(xref,universe)
+        xsi_model = integralXsiMode(xref,universe,mode = R)
         ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
         ax2.plot(xref,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
 
@@ -446,9 +453,64 @@ def plot_likelihoodConvol(r,xsi,O,S,std,R,mode = 'diagonal'):
     plt.show()
 
 
-x = np.array(np.loadtxt('heavy files/binsCorrBox'+str(number)+'.txt'))
-y = np.array(np.loadtxt('heavy files/CorrBox'+str(number)+'.txt'))
-std = np.loadtxt('heavy files/stdCorrBox.txt')
-print(refineMax(x,y,std, plot=True))
-print(refineMaxConvol(x,y,std,R = res, plot=True))
+# x = np.array(np.loadtxt('heavy files/binsCorrBox'+str(number)+'.txt'))
+# x = np.delete(x,[25,69,81]) # delete 40 & 80 & 160 Mpc anomaly
+# y = np.array(np.loadtxt('heavy files/CorrBox'+str(number)+'.txt'))
+# y = np.delete(y,[25,69,81]) # delete 40 & 80 & 160 Mpc anomaly
+# std = np.loadtxt('heavy files/stdCorrBox.txt')
+# std = np.delete(std,[26,70,81]) # delete 40 & 80 & 160 Mpc anomaly
+# print(refineMax(x,y,std, plot=True))
+# print(refineMaxConvol(x,y,std,R = res, plot=True))
 # plot_likelihoodConvol(x, y, np.linspace(0.25,0.35,31),np.linspace(0.75,0.85,31),std,R=res)
+
+
+# # # ############### Refine both R and cosmological parameters together
+
+
+# # # def refineMaxConvolandCosmo(r,xsi,std,plot = False, mode = 'diagonal'):
+# # #     universe = cosmo.Cosmology()
+# # #     xsi = np.array([xsi])
+# # #     std = np.array(std)
+# # #     if mode == 'diagonal':
+# # #         Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
+# # #         np.fill_diagonal(Sigma,std**2)
+# # #         std = Sigma
+# # #     invSig = np.linalg.inv(std)
+
+# # #     # print(integralXsi(r,cosmo.Cosmology(Omega_m=0.3,Omega_v=1-0.3, sigma_8=0.8)))
+# # #     def loglikelihood(parameters):
+# # #         # print(parameters)
+# # #         R = parameters[2]
+# # #         universe = cosmo.Cosmology(Omega_m=parameters[0],Omega_v=1-parameters[0], sigma_8=parameters[1])
+# # #         xsi_model = integralXsiMode(r,universe,mode = R)
+# # #         return np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
+
+# # #     sol = opt.minimize(loglikelihood, [0.2,0.7,12],options={ 'disp': True}, bounds = ((0,1),(0,2),(12,14))).x
+# # #     # sol = opt.minimize(loglikelihood, [0.2,0.8], bounds = ((0,1),(0,2))).x
+
+# # #     if plot:
+# # #         # ref versus data
+# # #         ax2 = plt.subplot()
+# # #         #ref
+# # #         xref = np.linspace(np.min(r),np.max(r),200)
+# # #         yref = integralXsiMode(xref,cosmo.Cosmology(),mode = sol[2])
+# # #         ax2.plot(xref, yref,color = 'black',linewidth = 1)
+# # #         #data
+# # #         ax2.errorbar(r,xsi.T, yerr=np.sqrt(std.diagonal()),fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+# # #         # refined
+# # #         universe = cosmo.Cosmology(Omega_m=sol[0],Omega_v=1-sol[0], sigma_8=sol[1])
+        
+# # #         xsi_model = integralXsiMode(xref,universe,sol[2])
+# # #         ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
+# # #         ax2.plot(xref,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
+
+# # #         ax2.legend(['Theoretical Convoluted','Refined : '+str(list(np.round(sol,3))),'Data'])
+# # #         ax2.set_xlabel('Radial distance (Mpc)')
+# # #         ax2.set_ylabel('Correlation function')
+# # #         ax2.set_xlim([15,225])
+# # #         ax2.set_ylim([-0.025,0.20])
+# # #         plt.show()
+
+# # #     return(sol) #
+
+# print(refineMaxConvolandCosmo(x,y,std, plot=True))

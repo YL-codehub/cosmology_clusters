@@ -5,9 +5,8 @@ import matplotlib.pyplot as plt
 import math as m 
 import csv
 import time as t
-import scipy.interpolate
+from scipy.interpolate import RegularGridInterpolator as rgi
 import scipy.stats as st
-
 ### Corentin's functions (verified)
 def convert_cartesian_to_sky_full_angle(X,Y,Z):
     RA = np.arctan2(X,Z)
@@ -124,15 +123,16 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     The observer is always at nc//2.'''
         
     nc = len(delta_new2)
-    
-    print('Arraying...')
-    b = np.array([[[[i,j,k] for i in range(nc)] for j in range(nc)] for k in range(nc)])
-    print('Sphericalizing...')
-    mid = len(b)//2
-    r, az, elev = convert_cartesian_to_sky_full_angle(b[:,:,:,0]-mid,b[:,:,:,1]-mid,b[:,:,:,2]-mid)
+     
+    ## Discrete Method
+    # print('Arraying...')
+    # b = np.array([[[[i,j,k] for i in range(nc)] for j in range(nc)] for k in range(nc)])
+    # print('Sphericalizing...')
+    mid = nc//2
+    # r, az, elev = convert_cartesian_to_sky_full_angle(b[:,:,:,0]-mid,b[:,:,:,1]-mid,b[:,:,:,2]-mid)
 
     # # No Newton
-    print('Redshifting...')
+    # print('Redshifting...')
     # from scipy import interpolate
     # step = 0.01
     # zmax = radialcomov_to_redshift(r.max()*dx)+0.1
@@ -148,7 +148,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
     # Dplus = g(Redshifts)
 
     # #select,projection = "mollweide"
-    print('Selecting...')
+    # print('Selecting...')
     # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
     print('Drawing points...')
@@ -162,38 +162,73 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
         h = h/np.sum(h)
         return h
 
-    def rejection_method(n,PDf = pdf()):
+    ##### Discrete Rejection Method 
+
+    # def rejection_method(n,PDf = pdf()):
+    #     '''choose n points with rejection sampling method for a given pdf'''
+    #     M = np.max(PDf)
+    #     N = int(np.round(2*n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
+    #     U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
+    #     H = M*st.uniform().rvs(size=N) 
+    #     selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
+    #     Uok = U[selection,:]
+    #     sphereTruth = (np.linalg.norm(Uok-nc//2,axis = 1)<=nc//2)
+    #     Uok = Uok[sphereTruth,:]
+    #     indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
+    #     Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
+    #     return Uok[:np.min([len(Uok),n]),:]
+    
+    # points = rejection_method(number)
+
+    ##### Continous Rejection Method 
+    pdf_box = pdf()
+    x = range(nc)
+    pdf_func = rgi((x,x,x), pdf_box)
+
+    def Continuous_rejection_method(n,PDf = pdf_func):
         '''choose n points with rejection sampling method for a given pdf'''
-        M = np.max(PDf)
-        N = int(np.round(2*n*(np.sum(M-PDf)/np.sum(PDf)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
-        U = np.round((nc-1)*st.uniform().rvs(size=(N,3))).astype(int)
+        M = np.max(pdf_box)
+        N = int(np.round(2*n*(np.sum(M-pdf_box)/np.sum(pdf_box)))*2*6/np.pi) #because many points go in the bin + we points out of the sphere+points twice-drew
+        U = np.random.uniform(0,nc-1,size = (N,3))
         H = M*st.uniform().rvs(size=N) 
-        selection = (PDf[U[:,0],U[:,1],U[:,2]]>=H)
+        print('step 1')
+        selection = (PDf(U)>=H)
+        print('step 2')
         Uok = U[selection,:]
         sphereTruth = (np.linalg.norm(Uok-nc//2,axis = 1)<=nc//2)
         Uok = Uok[sphereTruth,:]
-        indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
-        Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
+        # indexes = sorted(np.unique(Uok,axis = 0, return_index=True)[1])
+        # Uok = Uok[indexes,:] # better than just np.unique because np.unique sort values and create bias for the following selection
         return Uok[:np.min([len(Uok),n]),:]
-
-    points = rejection_method(number)
+    
+    points = Continuous_rejection_method(number)
+    
 
     # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev<np.pi/6)&(elev>0)))
     # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev>np.pi/6)&(elev<np.pi/2)))
     
-    Redshifts = r*dx
-    selectedRedshifts = np.array([Redshifts[points[:,0],points[:,1],points[:,2]]]).T
-    selectedElev = np.array([elev[points[:,0],points[:,1],points[:,2]]]).T
-    selectedAz = np.array([az[points[:,0],points[:,1],points[:,2]]]).T
-    selected = np.hstack([selectedRedshifts,selectedElev,selectedAz])
-    # print(np.mean(selectedRedshifts[selectedElev>0]))
-    # print(np.mean(selectedRedshifts[selectedElev>0]))
+    ## Discrete selection :
+    # Redshifts = r*dx
+    # selectedRedshifts = np.array([Redshifts[points[:,0],points[:,1],points[:,2]]]).T
+    # selectedElev = np.array([elev[points[:,0],points[:,1],points[:,2]]]).T
+    # selectedAz = np.array([az[points[:,0],points[:,1],points[:,2]]]).T
+    # selected = np.hstack([selectedRedshifts,selectedElev,selectedAz])
+    # # # # print(np.mean(selectedRedshifts[selectedElev>0]))
+    # # # # print(np.mean(selectedRedshifts[selectedElev>0]))
+
+    # Continuous selection :
+    points = points -mid #centering
+    points *= dx # going to Mpc
+    selectedRedshifts, selectedAz, selectedElev = convert_cartesian_to_sky_full_angle(points[:,0],points[:,1],points[:,2])
+    ## selectedRedshifts = comoving heres
+    selected = np.hstack([np.array([selectedRedshifts]).T,np.array([selectedElev]).T,np.array([selectedAz]).T])
+
 
     print('minLatt : ',np.min(selectedElev*180/np.pi), 'max Latt : ', np.max(selectedElev*180/np.pi))
     print('minLong : ',np.min(selectedAz*180/np.pi), 'max Long : ', np.max(selectedAz*180/np.pi))
 
     # np.savetxt('heavy files/DrawcatalogComovingMeth1MC'+str(MonteCarloIndex)+'.txt',selected)
-    np.savetxt('heavy files/BigCatalogTest'+str(MonteCarloIndex)+'.txt',selected)
+    np.savetxt('heavy files/BigCatalogContinuous'+str(MonteCarloIndex)+'.txt',selected)
 
     print('Number of objects generated : ', selectedRedshifts.shape[0])
 
@@ -246,12 +281,12 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
 
 #######################cataloger draw###########################
 
-# nc = 256
-# dx = 20
-# delta_new2 = np.fromfile('heavy files/box2nc'+str(nc)+'dx'+str(int(dx)))
-# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(np.min(delta_new2),np.std(delta_new2))
-# create_catalog_draw(delta_new2,dx = dx, number = 500000,MonteCarloIndex=2,plot = False)
+nc = 20
+dx = 20
+delta_new2 = np.fromfile('heavy files/box2nc'+str(nc)+'dx'+str(int(dx)))
+delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+print(np.min(delta_new2),np.std(delta_new2))
+create_catalog_draw(delta_new2,dx = dx, number = 5000,MonteCarloIndex=0,plot = False)
 
 #######################cataloger MonteCarlo###########################
 
@@ -272,7 +307,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True,MonteCar
 # dx = 20
 # # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
 
-# for i in range(20):
+# for i in range(1):
 #     print('Iteration: ',i)
 #     print('-------------------')
 #     delta_new2 = np.fromfile('heavy files/box'+str(i)+'nc'+str(nc)+'dx'+str(int(dx)))

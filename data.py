@@ -188,8 +188,8 @@ class Catalog:
 
 # #
 temp = Catalog()
-temp.Generate()
-temp.save_bins('test')
+# temp.Generate()
+# temp.save_bins('test')
 # # # please take the same rad2
 # temp = Catalog()
 temp.read_bins('test')
