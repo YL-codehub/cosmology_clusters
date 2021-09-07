@@ -194,8 +194,8 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 x = np.array(np.loadtxt('heavy files/BoxbinsXSIS.txt'))
 y = np.array(np.loadtxt('heavy files/BoxmeanXSIS.txt'))
 std = np.array(np.loadtxt('heavy files/BoxstdXSIS.txt'))
-plot_likelihood(x, y, np.linspace(0.20,0.40,41),np.linspace(0.6,1.0,41),std)
-# print(refineMax(x,y,std,plot=True))
+# plot_likelihood(x, y, np.linspace(0.25,0.35,41),np.linspace(0.65,0.9,41),std)
+print(refineMax(x,y,std,plot=True))
 # stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
 # print(refineMax(x,y,stddiag,plot=True))
 

@@ -105,8 +105,8 @@ XSIS = []
 dr = BinStep*dx #Mpc
 bins = np.array(np.linspace(a,b,int((b-a)/dr)+1))
 N = 4000
-
-for i in range(20):
+p = 20 # number of boxes
+for i in range(p):
     print('Iteration : ',i)
     delta_new = np.fromfile('heavy files/box'+str(i)+'nc'+str(nc)+'dx'+str(int(dx)))
     delta_new = np.reshape(delta_new,(nc,nc,nc))
@@ -133,7 +133,7 @@ np.savetxt('heavy files/BoxXSIS.txt',XSIS)
 
 XSIS = np.loadtxt('heavy files/BoxXSIS.txt')
 XSIS = np.array(XSIS).T
-Cov = np.cov(XSIS)
+Cov = np.cov(XSIS)/p
 meanXSIS = np.mean(XSIS,axis = 1)
 
 np.savetxt('heavy files/BoxbinsXSIS.txt', bins)
