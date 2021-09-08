@@ -78,7 +78,7 @@ def plot_likelihood(r,xsi,O,S,std,mode = 'diagonal'):
 
     ax1 = plt.subplot(121)
     # ax1.contourf(X, Y, Z)
-    ax1.scatter(O[a % len(S)], S[a // len(S)])
+    ax1.scatter(O[a % len(S)], S[a // len(S)], marker = '+')
     ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
     ax1.set_ylabel(r'$\sigma_8$')
@@ -108,6 +108,7 @@ def plot_likelihood(r,xsi,O,S,std,mode = 'diagonal'):
     ax2.set_ylabel('Correlation function')
     ax2.set_xlim([15,225])
     ax2.set_ylim([-0.025,0.20])
+    plt.tight_layout()
     plt.show()
 
 
@@ -181,7 +182,7 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 # plot_likelihood(xref, yref, np.linspace(0.2,0.4,5),np.linspace(0.7,0.9,5))
 
 ##################
-# x = np.loadtxt('heavy files/binsCorrBig0.txt')
+# x = np.loadtxt('heavy files/binsCorrBigMC0.txt')
 # # y = np.loadtxt('heavy files/CorrBig0.txt')
 # y = integralXsi(x,cosmo.Cosmology())
 # std = np.loadtxt('heavy files/stdCorrBig0.txt')
@@ -191,11 +192,12 @@ def refineMax(r,xsi,std, plot = False, mode = 'diagonal'):
 # x = np.array(np.loadtxt('heavy files/binsCorrBox0.txt'))
 # y = np.array(np.loadtxt('heavy files/CorrBox0.txt'))
 # std = np.loadtxt('heavy files/stdCorrBox.txt')
-x = np.array(np.loadtxt('heavy files/BoxbinsXSIS.txt'))
-y = np.array(np.loadtxt('heavy files/BoxmeanXSIS.txt'))
-std = np.array(np.loadtxt('heavy files/BoxstdXSIS.txt'))
-# plot_likelihood(x, y, np.linspace(0.25,0.35,41),np.linspace(0.65,0.9,41),std)
-print(refineMax(x,y,std,plot=True))
+# x = np.array(np.loadtxt('heavy files/BoxbinsXSIS.txt'))
+# y = np.array(np.loadtxt('heavy files/BoxmeanXSIS.txt'))
+# # std = np.array(np.loadtxt('heavy files/BoxstdXSIS.txt'))
+# std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+# plot_likelihood(x, y, np.linspace(0.1,0.6,41),np.linspace(0.6,1.1,41),std)
+# print(refineMax(x,y,std,plot=True))
 # stddiag = np.loadtxt('heavy files/stdCorrBig0.txt')
 # print(refineMax(x,y,stddiag,plot=True))
 
@@ -214,19 +216,17 @@ print(refineMax(x,y,std,plot=True))
 # Refine all MC and store #
 # # ###########################
 # Sols = []
-# for i in range(0,40):
-#     try:
-#         print('Iteration '+str(i)+' :')
-#         x = np.loadtxt('heavy files/CorrbinsBigCorrelation'+str(i)+'.txt')
-#         y = np.loadtxt('heavy files/CorrBigCorrelation'+str(i)+'.txt')  
-#         std = np.loadtxt('heavy files/stdCorrBig0.txt') # same uncertainties for all
-#         sol = refineMax(x,y,std,plot= False )
-#         print(sol)
-#         Sols.append(sol)
-#         print('------------------')
-#     except:
-#         continue
-# np.savetxt('heavy files/optiBig2.txt',Sols)
+# for i in range(0,20):
+#     print('Iteration '+str(i)+' :')
+#     x = np.loadtxt('heavy files/binsCorrBigMC0.txt')
+#     y = np.loadtxt('heavy files/CorrBigMC'+str(i)+'.txt')  
+#     std = np.loadtxt('heavy files/stdCorrBigMC.txt') # same uncertainties for all
+#     sol = refineMax(x,y,std,plot= False)
+#     print(sol)
+#     Sols.append(sol)
+#     print('------------------')
+
+# np.savetxt('heavy files/optiBigMC.txt',Sols)
 
 ################################ Testing window effects on correlation
 
@@ -290,20 +290,20 @@ def integralXsiMode(R,univ,a = 1e-7, b= 1e3,n = 100000,mode = 0):
 # np.savetxt('heavy files/binsCorrBoxMean.txt',np.array(np.loadtxt('heavy files/binsCorrBox0.txt')))
 
 ######### find the best R near data #########:
-# number = 'Mean'
-# number = 1
-def objective_function(R):
-    r = np.array(np.loadtxt('heavy files/binsCorrBox'+str(number)+'.txt'))
-    r = np.delete(r,[25,69,81]) # delete 40Mpc anomaly
-    xsi_data = np.array(np.loadtxt('heavy files/CorrBox'+str(number)+'.txt'))
-    xsi_data = np.delete(xsi_data,[25,69,81]) # delete 40Mpc anomaly
-    std = np.array(np.loadtxt('heavy files/stdCorrBox.txt'))
-    std = np.delete(std,[25,69,81]) # delete 40Mpc anomaly
-    xsi_convolutedR = integralXsiMode(r,cosmo.Cosmology(),mode = R)
-    return np.sum(np.power((xsi_convolutedR-xsi_data)/std,2))
+# number = 'mean'
+# # number = 1
+# def objective_function(R):
+#     r = np.array(np.loadtxt('heavy files/binsCorrBigMC0.txt'))
+#     # r = np.delete(r,[25,69,81]) # delete 40Mpc anomaly
+#     xsi_data = np.array(np.loadtxt('heavy files/CorrBigMC'+str(number)+'.txt'))
+#     # xsi_data = np.delete(xsi_data,[25,69,81]) # delete 40Mpc anomaly
+#     std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+#     # std = np.delete(std,[25,69,81]) # delete 40Mpc anomaly
+#     xsi_convolutedR = integralXsiMode(r,cosmo.Cosmology(),mode = R)
+#     return np.sum(np.power((xsi_convolutedR-xsi_data)/std,2))
 
 # import scipy.optimize as opt
-# res = opt.minimize(objective_function, [10],options={ 'disp': True}, bounds = ((10,16),)).x
+# res = opt.minimize(objective_function, [10],options={ 'disp': True}, bounds = ((5,16),)).x
 # print('R = ',res)
 
 # # plot 
@@ -514,3 +514,20 @@ def plot_likelihoodConvol(r,xsi,O,S,std,R,mode = 'diagonal'):
 # # #     return(sol) #
 
 # print(refineMaxConvolandCosmo(x,y,std, plot=True))
+
+
+
+
+##################### Report :
+
+###### Box refinement
+# x = np.array(np.loadtxt('heavy files/binsCorrBigMC0.txt'))
+# y = np.array(np.loadtxt('heavy files/CorrBigMCmean.txt'))
+# std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+# print(refineMax(x,y,std,plot=True))
+
+###### Contour Type 3
+x = np.loadtxt('heavy files/binsCorrBigMC0.txt')
+y = integralXsi(x,cosmo.Cosmology())
+std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+plot_likelihood(x, y, np.linspace(0.1,0.6,51),np.linspace(0.6,1.1,51),std)

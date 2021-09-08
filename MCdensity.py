@@ -10,7 +10,7 @@ import scipy.interpolate
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-points = np.loadtxt('heavy files/optiBig3.txt')
+points = np.loadtxt('heavy files/optiBigMC.txt')
 sigmas, Oms = points[:,1], points[:,0]
 
 # Show the datapoints on top of this, 
@@ -21,7 +21,7 @@ ax.scatter(Oms, sigmas, c='w', s=2, zorder=15, edgecolor='black',alpha=0.75)
 k = kde.gaussian_kde(points.T)
 nbins=200
 # xi, yi = np.mgrid[Oms.min():Oms.max():nbins*1j, sigmas.min():sigmas.max():nbins*1j]
-xi, yi = np.mgrid[0.1:0.6:nbins*1j, 0.6:0.9:nbins*1j]
+xi, yi = np.mgrid[0.1:0.6:nbins*1j, 0.5:1.1:nbins*1j]
 zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
 # Show the density
@@ -75,7 +75,7 @@ ax.add_patch(ring_patch68)
 
 ax.legend([r'$95\%$',r'$68\%$'])
 
-ax.set_ylim(0.6,0.9)
+ax.set_ylim(0.5,1.1)
 ax.set_xlim(0.1,0.6)
 ax.set_xlabel(r'$\Omega_m$')
 ax.set_ylabel(r'$\sigma_8$')

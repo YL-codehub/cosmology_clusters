@@ -106,7 +106,7 @@ dr = BinStep*dx #Mpc
 bins = np.array(np.linspace(a,b,int((b-a)/dr)+1))
 N = 4000
 p = 20 # number of boxes
-for i in range(p):
+for i in range(0):
     print('Iteration : ',i)
     delta_new = np.fromfile('heavy files/box'+str(i)+'nc'+str(nc)+'dx'+str(int(dx)))
     delta_new = np.reshape(delta_new,(nc,nc,nc))
@@ -129,26 +129,26 @@ for i in range(p):
         # stdbins.append(std)
     XSIS.append(Xsi)
 
-np.savetxt('heavy files/BoxXSIS.txt',XSIS)
+# np.savetxt('heavy files/BoxXSIS.txt',XSIS)
 
 XSIS = np.loadtxt('heavy files/BoxXSIS.txt')
 XSIS = np.array(XSIS).T
 Cov = np.cov(XSIS)/p
 meanXSIS = np.mean(XSIS,axis = 1)
 
-np.savetxt('heavy files/BoxbinsXSIS.txt', bins)
-np.savetxt('heavy files/BoxmeanXSIS.txt',meanXSIS)
-np.savetxt('heavy files/BoxstdXSIS.txt',np.sqrt(Cov.diagonal()))
+# np.savetxt('heavy files/BoxbinsXSIS.txt', bins)
+# np.savetxt('heavy files/BoxmeanXSIS.txt',meanXSIS)
+# np.savetxt('heavy files/BoxstdXSIS.txt',np.sqrt(Cov.diagonal()))
 
 #ref
 xr = np.linspace(15,220,50)
 y = integralXsi(xr,cosmo.Cosmology())
-plt.plot(xr, y,color = 'red',linestyle = '--')
+plt.plot(xr, y,color = 'black',linestyle = '--')
 
-plt.errorbar(bins,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',alpha=0.6) # Be careful those are not error bars but only the delta delta values dispersions
-plt.scatter(bins,meanXSIS,linewidths=1.1,color = 'blue',marker = '+' )
+plt.errorbar(bins,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',capsize = 3,elinewidth = 0.7,capthick=0.7) # Be careful those are not error bars but only the delta delta values dispersions
+plt.scatter(bins,meanXSIS,linewidths=1.1,color = 'blue',marker = '+')
 
-plt.legend(['Ref','Mine (bins)'])
+plt.legend(['Theoretical','Box (bins)'])
 plt.tight_layout()
 plt.show()
 

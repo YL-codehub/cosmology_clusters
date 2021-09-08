@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import csv
 import randPoints as rP
 import scipy.stats as st
+import scipy.spatial as sp
 import Cosmological_tools as cosmo
 
 ###
@@ -49,6 +50,16 @@ def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
 def window(y):
     '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
     return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
+
+def XsiEval(r, Dist,xsis,dr):
+    '''Dist is the distance matrix from two catalogs.
+    xsis = kron
+    r is the np.linspace with all the distances on which bins are centered
+    dr is the width of a distance bin'''
+    # eligible = np.multiply((Dist>r[:,None,None]-dr/2)&(Dist<r[:,None,None]+dr/2),xsis)
+    eligible = np.tril(np.multiply((Dist>r-dr/2)&(Dist<=r+dr/2),xsis))
+    eligible = eligible[np.nonzero(eligible)] 
+    return (np.mean(eligible), np.std(eligible))
 
 import scipy.integrate as intg
 # As = sigma8 ** 2 * (2 * np.pi) ** 3 / (4*np.pi*intg.quad(lambda K : K **  ns *  transfer_Function_BKKS(K) ** 2 * abs( window(K * 8/ h))** 2 * K ** 2, 0, np.inf,limit = 500)[0])
@@ -109,7 +120,7 @@ def main(saveCorr = -1):
 
 
     axs[1, 0].imshow(delta_new[nc // 2, :, :])
-    axs[1, 0].set_title(r'Overensity contrast at z = 0, $\sigma_8 =$ '+str(np.std(delta_new).round(2)))
+    axs[1, 0].set_title(r'$\delta$'+' map, '+ r'$\sigma =$'+str(np.std(delta_new).round(2)))
 
     # Check Spectrum (and so the units !)
     print('Plotting Spectrum...')
@@ -118,16 +129,17 @@ def main(saveCorr = -1):
 
     distances, _ = np.unique(kMpc, return_inverse=True)
     Pk = np.bincount(_, weights=np.abs(P_BKKS.ravel())) / np.bincount(_)
-    axs[0, 1].scatter(distances, Pk, marker='+',color = 'blue')
+    # axs[0, 1].scatter(distances, Pk, marker='+',color = 'blue')
     nPk = np.bincount(_, weights=np.abs(np.multiply(P_BKKS,abs(delta_k)**2).ravel()))/np.bincount(_)
     axs[0,1].scatter(distances, nPk, marker = '+',color = 'green')
 
-    axs[0,1].legend(['Reference', 'Non noisy mine', 'Noisy Mine'])
+    # axs[0,1].legend(['Reference', 'Non noisy mine', 'Noisy Mine'])
+    axs[0,1].legend(['Theoretical', 'Box (noisy)'])
     axs[0,1].semilogy()
     axs[0,1].semilogx()
     axs[0,1].set_xlim([1e-5,1e2])
     axs[0,1].grid()
-    axs[0,1].set_title('Induced Spectrum')
+    axs[0,1].set_title('Spectrum space')
     axs[0,1].set_xlabel('Wave number '+r'$k$ $(Mpc^{-1}$)')
     axs[0,1].set_ylabel(r'$P(k)$')
     # plt.show()
@@ -306,18 +318,6 @@ def main(saveCorr = -1):
     #         except KeyError:
     #             val[ind] = [delta_new[int(i1), int(j1), int(k1)] * delta_new[int(i2), int(j2), int(k2)]]
 
-#Binning vfinale :
-    # print('...Binning...')
-    # bins = []
-    # Xsi = []
-    # stdbins = []
-    # for key in val.keys():
-    #     if len(val[key]) > 0:#nc**2/2:
-    #         if key*dx<=b+BinStep/2 and key*dx>=a-BinStep/2 : #do not count over 215 Mpc and under 10Mpc (non-linear regime)
-    #             Xsi.append(np.mean(val[key])) #biased correlation estimation,
-    #             bins.append(key*dx)
-    #             stdbins.append(np.std(val[key]))
-                
 
 #Binning classique :
     # print('...Binning...')
@@ -335,52 +335,78 @@ def main(saveCorr = -1):
     #             # Xsi.append(np.mean(val[key])/c**2)
     #             X.append(np.sqrt(key) * dx)
 
+    ######### Non-biased Corr evualation
+    a,b = 20,220 #Mpc
+    BinStep = 0.5 #pixels (x20 Mpc)
+    dr = BinStep*dx #Mpc
+    bins = np.array(np.linspace(a,b,int((b-a)/dr)+1)) 
+    N = 4000      
+     ### I take a sub-cube with 10 times more 
+    n = np.power(10*N,1/3)
+    points = np.random.uniform(nc//2-n/2,nc//2+n/2,size = (N,3)) #pixels
+
+    distancesMatrix = sp.distance_matrix(points,points,2)*dx #Mpc
+    Delta = np.array([delta_new[points[:,0].astype(int),points[:,1].astype(int),points[:,2].astype(int)]]).T
+    xsis = np.kron(Delta,Delta.T)
+
+    Xsi = []
+    dispersion = []
+
+    for r in bins:
+        xsi, dispersion = XsiEval(r,Dist = distancesMatrix,xsis = xsis,dr = dr)
+        Xsi.append(xsi)
+        # dispersion.append(disp) # this is not a std, but the dispersion of deltadelta products when taking the mean for xsi
 
     if saveCorr == -1:
         ##### plot final binning
-        # plt.scatter(bins,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
+        plt.scatter(bins,Xsi,linewidths=1,color = 'blue',marker = '+')
         # axs[1,1].errorbar(bins,Xsi, yerr=stdbins,ecolor= 'red')
 
         # ##### Classic binning
-        plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
-        nbins = 10
-        a,b = 20,220
-        step = (b-a)/nbins
-        centerbins = np.linspace(a,b,nbins+1)
-        print(centerbins)
-        bins = []
-        stdbins = []
-        for i in range(len(centerbins)):
-            tempbin = []
-            for j in range(len(X)):
-                if X[j]>= centerbins[i]-step/2 and X[j]< centerbins[i]+step/2:
-                    tempbin.append(Xsi[j])
-            bins.append(np.mean(tempbin))
-            stdbins.append(np.std(tempbin))
-        print('Plotting correlation...')
-        # print(stdbins)
-        axs[1,1].errorbar(centerbins,bins, yerr=stdbins,ecolor= 'red')
+        # plt.scatter(X,Xsi,linewidths=0.5,color = 'blue',marker = '+', alpha=0.6)
+        # nbins = 10
+        # a,b = 20,220
+        # step = (b-a)/nbins
+        # centerbins = np.linspace(a,b,nbins+1)
+        # print(centerbins)
+        # bins = []
+        # stdbins = []
+        # for i in range(len(centerbins)):
+        #     tempbin = []
+        #     for j in range(len(X)):
+        #         if X[j]>= centerbins[i]-step/2 and X[j]< centerbins[i]+step/2:
+        #             tempbin.append(Xsi[j])
+        #     bins.append(np.mean(tempbin))
+        #     stdbins.append(np.std(tempbin))
+        # print('Plotting correlation...')
+        # # print(stdbins)
+        # axs[1,1].errorbar(centerbins,bins, yerr=stdbins,ecolor= 'red')
 
     # Reference correlation
-        xref, yref = readtxt('xsi.txt')
-        xref,yref = np.array(xref), np.array(yref)
-        selection = (xref>=10)&(xref<=230)
-        xref,yref = xref[selection], yref[selection]
-        axs[1,1].plot(xref, yref,color = 'red')
+        # xref, yref = readtxt('xsi.txt')
+        # xref,yref = np.array(xref), np.array(yref)
+        # selection = (xref>=10)&(xref<=230)
+        # xref,yref = xref[selection], yref[selection]
+        # axs[1,1].plot(xref, yref,color = 'red')
         # axs[1,1].semilogx()
         # axs[1,1].semilogy()
         #
 
         # Analytical fourier⁻1
         # f = lambda k,x : initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-        xr = np.linspace(15,220,50)
+        xr = np.linspace(15,230,50)
         # y = [intg.quad(lambda k : f(k,x), 0, np.inf,limit=100)[0] for x in xr]
+        # y = integralXsi(xr,cosmo.Cosmology(sigma_8=np.std(delta_new)))
+        # axs[1,1].plot(xr, y,color = 'black',linestyle = '--')
         y = integralXsi(xr,cosmo.Cosmology())
         axs[1,1].plot(xr, y,color = 'red',linestyle = '--')
         
         # axs[1,1].set_xlim([15,220])
         # axs[1,1].set_ylim([-0.025,0.25])
-        axs[1,1].legend(['Ref','Mine (Points)','Mine (bins)'])
+        axs[1,1].legend(['Theoretical','Box (binned)'])
+        axs[1,1].set_title('Space correlation function '+r'$\xi$')
+        axs[1,1].set_ylabel(r'$\xi(r)$')
+        axs[1,1].set_xlabel(r'$r$'+' '+r'$(Mpc)$')
         plt.tight_layout()
         plt.show()
     else:
@@ -393,11 +419,11 @@ def main(saveCorr = -1):
 
 
 
-# ==================================
-# if __name__ == "__main__":
-# ==================================
+#==================================
+if __name__ == "__main__":
+#==================================
 
-#     main()
+    main()
 
     
     #ref
@@ -425,9 +451,9 @@ def main(saveCorr = -1):
 
 ##################### Monte-Carlo, std on Correlation #############################
 #FIRst EVALUATE xsis etc
-for i in range(10,20):
-    print('Iteration ', str(i))
-    main(saveCorr = i)
+# for i in range(10,20):
+#     print('Iteration ', str(i))
+#     main(saveCorr = i)
 
 # Then compute uncertainties
 # XSIs = []
