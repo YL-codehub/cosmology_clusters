@@ -1,3 +1,4 @@
+from matplotlib import colors
 from numpy.linalg.linalg import norm
 from scipy.stats.morestats import Mean
 import Cosmological_tools as cosmo
@@ -62,4 +63,33 @@ np.savetxt('covBig.txt',Cov)
 corr = np.corrcoef(All)
 plt.imshow(corr)
 plt.colorbar()
+plt.show()
+
+# setup the figure and axes
+fig = plt.figure(figsize=(8, 3))
+ax1 = fig.add_subplot(111, projection='3d')
+
+# fake data
+n1 = 7 * 18
+n2 = 21
+n = len(corr)
+_x = np.arange(n)+0.5
+_y = np.arange(n)+0.5
+_xx, _yy = np.meshgrid(_x, _y)
+# print(_xx)
+# print(_yy)
+x, y = _xx.ravel(), _yy.ravel()
+# print(x)
+# print(y)
+# top = x+y
+# print(top)
+# print(top.shape)
+top = np.ravel(corr[:n,:n])
+bottom = np.zeros_like(top)
+width = depth = 1
+
+ax1.bar3d(x, y, bottom, width, depth, top, shade = True,alpha = 1)
+ax1.set_zlim(-1,1)
+
+ax1.set_title('Counts-Correlation correlation matrix')
 plt.show()

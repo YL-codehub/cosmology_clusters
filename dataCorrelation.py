@@ -10,9 +10,10 @@ from scipy import interpolate
 import scipy.integrate as intg
 import scipy.optimize as opt
 
-# mode = 'perso' ## then my version
+mode = None
+# mode = 'perso' ## then my version, MC implementation
 # mode = 'nbodykit'
-mode = 'MC'
+# mode = 'MC'
 
 def readtxt(file):
     X = []
@@ -191,68 +192,79 @@ def random_Ball(radius, n, Sig = np.identity(3), mode = 'sphere',finv = None):
         sphereTruth = (np.linalg.norm(C,axis = 1)<=radius)
         C = C[sphereTruth,:]
         return C[:n,:]
+
 #####################fast distances matrix#################
+plot = True
+save = False
+
 if mode == 'perso':
     import scipy.spatial as sp
-
+    XSIS = []
     # ref = t.time()
+    for i in range(1):
+        print('Iteration :',str(i))
+        Catalog = np.loadtxt('heavy files/BigCatalogMCContinuous'+str(i)+'.txt')
+        Catalog = np.nan_to_num(Catalog)
+        # Catalog = np.loadtxt('thresholdcatalog.txt')
+        n = Catalog.shape[0] #counts number
+        print("Catalog size :",n)
+        rmax = np.max(Catalog[:,0])
+        Catalog = sph2cart(Catalog)[:n,:] # au-dessus de 10000 trop lourd
+        # plotDraw(Catalog)
+        ## random catalog creation, conserving counts density
+        # rand_radius = 3*zmax
+        # rand_n = int((rand_radius/zmax)**3)*n
+        rand_n = n
+        # print(rand_n) #do not exceed 18 000... for RAM safety
+        randomCatalog = random_Ball(radius=rmax,n=rand_n)
+        # print(t.time()-ref)
 
-    Catalog = np.loadtxt('heavy files/BigCatalogContinuous0.txt')
-    Catalog = np.nan_to_num(Catalog)
-    # Catalog = np.loadtxt('thresholdcatalog.txt')
-    n = Catalog.shape[0] #counts number
-    print("Catalog size :",n)
-    rmax = np.max(Catalog[:,0])
-    Catalog = sph2cart(Catalog)[:n,:] # au-dessus de 10000 trop lourd
-    # plotDraw(Catalog)
-    ## random catalog creation, conserving counts density
-    # rand_radius = 3*zmax
-    # rand_n = int((rand_radius/zmax)**3)*n
-    rand_n = n
-    # print(rand_n) #do not exceed 18 000... for RAM safety
-    randomCatalog = random_Ball(radius=rmax,n=rand_n)
-    # print(t.time()-ref)
+        #plot Catalog
+        # plotDraw(Catalog)
 
-    #plot Catalog
-    # plotDraw(Catalog)
+        # ref = t.time()
+        distancesDD = sp.distance_matrix(Catalog,Catalog,2)
+        distancesDR = sp.distance_matrix(Catalog,randomCatalog,2)
+        distancesRR = sp.distance_matrix(randomCatalog,randomCatalog,2)
+        # print(t.time()-ref)
+        a,b = 20, 220
+        dr = 10
+        # r = np.array([0.5,0.7])
+        step = (b-a)/10
+        # zmax = 20
+        r = np.array(np.linspace(a,b,int((b-a)/dr)+1))
 
-    # ref = t.time()
-    distancesDD = sp.distance_matrix(Catalog,Catalog,2)
-    distancesDR = sp.distance_matrix(Catalog,randomCatalog,2)
-    distancesRR = sp.distance_matrix(randomCatalog,randomCatalog,2)
-    # print(t.time()-ref)
-    a,b = 20, 220
-    dr = 10
-    # r = np.array([0.5,0.7])
-    step = (b-a)/10
-    # zmax = 20
-    r = np.array(np.linspace(a,b,int((b-a)/dr)+1))
-
-    def numberPairs(Dist,r,dr):
-        '''Dist is the distance matrix from two catalogs.
-        r is the np.linspace with all the distances on which bins are centered
-        dr is the width of a distance bin'''
-        return(((Dist>r[:,None,None]-dr/2)&(Dist<r[:,None,None]+dr/2)).sum(axis=(1,2)))
+        def numberPairs(Dist,r,dr):
+            '''Dist is the distance matrix from two catalogs.
+            r is the np.linspace with all the distances on which bins are centered
+            dr is the width of a distance bin'''
+            return(((Dist>r[:,None,None]-dr/2)&(Dist<r[:,None,None]+dr/2)).sum(axis=(1,2)))
 
 
-    DD = numberPairs(distancesDD,r,dr)
-    DR = numberPairs(distancesDR,r,dr)
-    RR = numberPairs(distancesRR,r,dr)
-    Xsi = (DD-2*DR+RR)/RR
-    plt.scatter(r,Xsi,marker ='+')
+        DD = numberPairs(distancesDD,r,dr)
+        DR = numberPairs(distancesDR,r,dr)
+        RR = numberPairs(distancesRR,r,dr)
+        Xsi = (DD-2*DR+RR)/RR
 
-    #ref
+        if save:
+            XSIS.append(Xsi)
+        # # plot
+        if plot:
+            plt.scatter(r,Xsi,marker ='+')
+            #ref
+            xref, yref = readtxt('xsi.txt')
+            xref,yref = np.array(xref), np.array(yref)
+            selection = (xref>=15)&(xref<=r[-1])
+            xref,yref = xref[selection], yref[selection]
+            plt.xlabel('Radial distance (Mpc)')
+            plt.ylabel(r'$\xi(r)$')
+            plt.plot(xref, yref,color = 'black')
+            plt.legend(['Mine','Ref'])
+            plt.show()
+        np.savetxt('heavy files/binsCorrBigMCContinuous'+str(i)+'.txt',r)
+        np.savetxt('heavy files/CorrBigMCContinuous'+str(i)+'.txt',Xsi)
 
-    xref, yref = readtxt('xsi.txt')
-    xref,yref = np.array(xref), np.array(yref)
-    selection = (xref>=15)&(xref<=r[-1])
-    xref,yref = xref[selection], yref[selection]
-    plt.xlabel('Radial distance (Mpc)')
-    plt.ylabel(r'$\xi(r)$')
-    plt.plot(xref, yref,color = 'black')
-    plt.legend(['Mine','Ref'])
-    plt.show()
-
+    np.savetxt('heavy files/BigMCContinuousXSIs.txt',XSIS)
 
 # #####################nbodykit#####################""
 def convert_cartesian_to_sky_full_angle(X,Y,Z):
@@ -348,7 +360,9 @@ if mode == 'nbodykit':
     plt.show()
 
 # ###################Monte Carlo##################
-mode = 'temp'
+# mode = 'temp'
+doubleCatalog = True
+
 if mode == 'MC':
     from nbodykit.algorithms.paircount_tpcf import tpcf
     from nbodykit.lab import ArrayCatalog
@@ -364,20 +378,25 @@ if mode == 'MC':
     C = FakeCosmo()
     XSIS = []
 
-    for i in range(15,20):
+    for i in range(0,20):
         print('Iteration: ',i)
         # Catalog = np.loadtxt('heavy files/BigCatalogMC'+str(i)+'.txt')
-        Catalog = np.loadtxt('heavy files/BigCatalogContinuous'+str(i)+'.txt')
+        # Catalog = np.loadtxt('heavy files/BigCatalogContinuous'+str(i)+'.txt')
+        Catalog = np.loadtxt('heavy files/BigDoubleCatalog'+str(i)+'.txt')
+
         n = Catalog.shape[0] #counts number
         rmax = np.max(Catalog[:,0])
         data = ArrayCatalog({'RA': Catalog[:,2]*180/np.pi, 'DEC': Catalog[:,1]*180/np.pi, 'Redshift': Catalog[:,0], 'WEIGHT':np.ones(len(Catalog))})
 
-        rand_n = 3*n
-
-        randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
-        r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
-        random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
-
+       
+        if doubleCatalog:
+            randomCatalog = np.loadtxt('heavy files/RANDOMBigDoubleCatalog'+str(i)+'.txt')
+            random_data = ArrayCatalog({'RA': randomCatalog[:,2]*180/np.pi, 'DEC': randomCatalog[:,1]*180/np.pi, 'Redshift': randomCatalog[:,0], 'WEIGHT':np.ones(len(randomCatalog))})
+        else:
+            rand_n = 3*n
+            randomCatalog = random_Ball(radius=rmax,n=rand_n,mode = 'test') #ok functionnal
+            r, RA, DEC = convert_cartesian_to_sky_full_angle(randomCatalog[:,0],randomCatalog[:,1],randomCatalog[:,2])
+            random_data = ArrayCatalog({'RA': RA*180/np.pi, 'DEC': DEC*180/np.pi,'Redshift' : r, 'WEIGHT':np.ones(len(r))})
 
         Xsi = tpcf.SurveyData2PCF(mode='1d',data1=data,randoms1 = random_data, edges = bins,cosmo=C)
 
@@ -390,10 +409,17 @@ if mode == 'MC':
         # np.savetxt('heavy files/binsCorrBigMC'+str(i)+'.txt',r)
         # np.savetxt('heavy files/CorrBigMC'+str(i)+'.txt',xsi)
 
-        np.savetxt('heavy files/binsCorrBigMCContinuous'+str(i)+'.txt',r)
-        np.savetxt('heavy files/CorrBigMCContinuous'+str(i)+'.txt',xsi)
+        # np.savetxt('heavy files/binsCorrBigMCContinuous'+str(i)+'.txt',r)
+        # np.savetxt('heavy files/CorrBigMCContinuous'+str(i)+'.txt',xsi)
 
-    np.savetxt('heavy files/BigMCCOntinuousXSIs.txt',XSIS)
+        np.savetxt('heavy files/binsCorrBigDouble'+str(i)+'.txt',r)
+        np.savetxt('heavy files/CorrBigDouble'+str(i)+'.txt',xsi)
+
+        plt.scatter(r,xsi,marker = '+')
+        plt.plot(r,integralXsi(r,univ = cosmo.Cosmology()))
+        plt.show()
+    # np.savetxt('heavy files/BigMCCOntinuousXSIs.txt',XSIS)
+    np.savetxt('heavy files/BigDoubleCatalogXSIs.txt',XSIS)
 
 
 # ########### Big Correlation ###########
@@ -435,56 +461,69 @@ if mode == 'MC':
 ####simple plot of previous computing
 # XSIS = []
 # # XsisMC = np.loadtxt('heavy files/BigMCXSIs.txt').T
+# # XsisMC = np.loadtxt('heavy files/BigMCContinuousXSIs.txt').T
 # # Cov = np.cov(XsisMC)
-# # np.savetxt('heavy files/stdCorrBigMC.txt',np.sqrt(np.diag(Cov)))
+# # np.savetxt('heavy files/stdCorrBigMCContinuous.txt',np.sqrt(np.diag(Cov)))
 
 # for i in range(20):
-#     r = np.loadtxt('heavy files/binsCorrBigMC'+str(i)+'.txt')
-#     xsi = np.loadtxt('heavy files/CorrBigMC'+str(i)+'.txt')
-#     XSIS.append(xsi)
-#     # # std = np.loadtxt('heavy files/stdCorrBigMC.txt')
-#     # std = np.loadtxt('heavy files/stdCorrBigMCContinuous.txt')
-#     # # xsi = xsi/(0.2**2)
-#     # plt.errorbar(r, xsi, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
-#     plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
+#     try:
+#         # r = np.loadtxt('heavy files/binsCorrBigMC'+str(i)+'.txt')
+#         # xsi = np.loadtxt('heavy files/CorrBigMC'+str(i)+'.txt')
+#         # r = np.loadtxt('heavy files/binsCorrBigMCContinuous'+str(i)+'.txt')
+#         # xsi = np.loadtxt('heavy files/CorrBigMCContinuous'+str(i)+'.txt')
+#         r = np.loadtxt('heavy files/binsCorrBigMCContinuous'+str(i)+'.txt')
+#         xsi = np.loadtxt('heavy files/CorrBigCorrelation'+str(i)+'.txt')
+#         XSIS.append(xsi)
+#         # # std = np.loadtxt('heavy files/stdCorrBigMC.txt')
+#         # std = np.loadtxt('heavy files/stdCorrBigMCContinuous.txt')
+#         # # xsi = xsi/(0.2**2)
+#         # plt.errorbar(r, xsi, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
+#         plt.scatter(r,xsi,color = 'blue',marker = '+',linewidths = 1.1)
 
-#     xref, yref = readtxt('xsi.txt')
-#     xref,yref = np.array(xref), np.array(yref)
-#     selection = (xref>=15)&(xref<=r[-1])
-#     xref,yref = xref[selection], yref[selection]
-#     # yref = 0.2**2*yref
-#     plt.xlabel('Radial distance (Mpc)')
-#     plt.ylabel(r'$\xi(r)$')
-#     plt.plot(xref, yref,color = 'black')
-#     plt.legend(['Mine','Ref'])
-#     plt.show()
+#         xref, yref = readtxt('xsi.txt')
+#         xref,yref = np.array(xref), np.array(yref)
+#         selection = (xref>=15)&(xref<=r[-1])
+#         xref,yref = xref[selection], yref[selection]
+#         # yref = 0.2**2*yref
+#         plt.xlabel('Radial distance (Mpc)')
+#         plt.ylabel(r'$\xi(r)$')
+#         plt.plot(xref, yref,color = 'black')
+#         plt.legend(['Mine','Ref'])
+#         plt.show()
+#     except:
+#         print('no such file')
+#         continue
 
 
 # # plt.show()
-# np.savetxt('heavy files/BigMCXSIs.txt',XSIS)
+# np.savetxt('heavy files/BigCorrelationXSIs.txt',XSIS)
 
 
 # ####simple plot of mean (mean)
-# XSIS = []
+XSIS = []
 # XsisMC = np.loadtxt('heavy files/BigMCXSIs.txt')
-# XSIS = np.array(XsisMC).T
-# meanXSIS = np.mean(XSIS,axis = 1)
-# print(np.cov(XSIS).shape)
-# Cov = np.cov(XSIS)/XSIS.shape[0]
+# XsisMC = np.loadtxt('heavy files/BigMCContinuousXSIs.txt')
+XsisMC = np.loadtxt('heavy files/BigCorrelationXSIs.txt')
+XSIS = np.array(XsisMC).T
+meanXSIS = np.mean(XSIS,axis = 1)
+print(np.cov(XSIS).shape)
+Cov = np.cov(XSIS)/XSIS.shape[0]
 
 # np.savetxt('heavy files/CorrBigMCmean.txt',meanXSIS)
-# #ref
-# xr = np.linspace(15,220,50)
-# y = integralXsi(xr,cosmo.Cosmology())
-# plt.plot(xr, y,color = 'black',linestyle = '--')
+# np.savetxt('heavy files/CorrBigMCContinuousmean.txt',meanXSIS)
+np.savetxt('heavy files/CorrBigCorrelation.txt',meanXSIS)
+#ref
+xr = np.linspace(15,220,50)
+y = integralXsi(xr,cosmo.Cosmology())
+plt.plot(xr, y,color = 'black',linestyle = '--')
 
-# r = np.loadtxt('heavy files/binsCorrBigMC0.txt')
-# plt.errorbar(r,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',capsize = 3,elinewidth = 0.7,capthick=0.7) # Be careful those are not error bars but only the delta delta values dispersions
-# plt.scatter(r,meanXSIS,linewidths=1.1,color = 'blue',marker = '+')
+r = np.loadtxt('heavy files/binsCorrBigMC0.txt')
+plt.errorbar(r,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',capsize = 3,elinewidth = 0.7,capthick=0.7) # Be careful those are not error bars but only the delta delta values dispersions
+plt.scatter(r,meanXSIS,linewidths=1.1,color = 'blue',marker = '+')
 
-# plt.legend(['Theoretical','Box (bins)'])
-# plt.tight_layout()
-# plt.show()
+plt.legend(['Theoretical','Box (bins)'])
+plt.tight_layout()
+plt.show()
 
 
 

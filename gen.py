@@ -335,29 +335,30 @@ def main(saveCorr = -1):
     #             # Xsi.append(np.mean(val[key])/c**2)
     #             X.append(np.sqrt(key) * dx)
 
-    ######### Non-biased Corr evualation
-    a,b = 20,220 #Mpc
-    BinStep = 0.5 #pixels (x20 Mpc)
-    dr = BinStep*dx #Mpc
-    bins = np.array(np.linspace(a,b,int((b-a)/dr)+1)) 
-    N = 4000      
-     ### I take a sub-cube with 10 times more 
-    n = np.power(10*N,1/3)
-    points = np.random.uniform(nc//2-n/2,nc//2+n/2,size = (N,3)) #pixels
-
-    distancesMatrix = sp.distance_matrix(points,points,2)*dx #Mpc
-    Delta = np.array([delta_new[points[:,0].astype(int),points[:,1].astype(int),points[:,2].astype(int)]]).T
-    xsis = np.kron(Delta,Delta.T)
-
-    Xsi = []
-    dispersion = []
-
-    for r in bins:
-        xsi, dispersion = XsiEval(r,Dist = distancesMatrix,xsis = xsis,dr = dr)
-        Xsi.append(xsi)
-        # dispersion.append(disp) # this is not a std, but the dispersion of deltadelta products when taking the mean for xsi
 
     if saveCorr == -1:
+            ######### Non-biased Corr evualation
+        a,b = 20,220 #Mpc
+        BinStep = 0.5 #pixels (x20 Mpc)
+        dr = BinStep*dx #Mpc
+        bins = np.array(np.linspace(a,b,int((b-a)/dr)+1)) 
+        N = 4000      
+        ### I take a sub-cube with 10 times more 
+        n = np.power(10*N,1/3)
+        points = np.random.uniform(nc//2-n/2,nc//2+n/2,size = (N,3)) #pixels
+
+        distancesMatrix = sp.distance_matrix(points,points,2)*dx #Mpc
+        Delta = np.array([delta_new[points[:,0].astype(int),points[:,1].astype(int),points[:,2].astype(int)]]).T
+        xsis = np.kron(Delta,Delta.T)
+
+        Xsi = []
+        dispersion = []
+
+        for r in bins:
+            xsi, dispersion = XsiEval(r,Dist = distancesMatrix,xsis = xsis,dr = dr)
+            Xsi.append(xsi)
+        # dispersion.append(disp) # this is not a std, but the dispersion of deltadelta products when taking the mean for xsi
+
         ##### plot final binning
         plt.scatter(bins,Xsi,linewidths=1,color = 'blue',marker = '+')
         # axs[1,1].errorbar(bins,Xsi, yerr=stdbins,ecolor= 'red')
@@ -419,11 +420,11 @@ def main(saveCorr = -1):
 
 
 
-#==================================
-if __name__ == "__main__":
-#==================================
+# #==================================
+# if __name__ == "__main__":
+# #==================================
 
-    main()
+#     main()
 
     
     #ref
@@ -451,9 +452,9 @@ if __name__ == "__main__":
 
 ##################### Monte-Carlo, std on Correlation #############################
 #FIRst EVALUATE xsis etc
-# for i in range(10,20):
-#     print('Iteration ', str(i))
-#     main(saveCorr = i)
+for i in range(0,20):
+    print('Iteration ', str(i))
+    main(saveCorr = i)
 
 # Then compute uncertainties
 # XSIs = []

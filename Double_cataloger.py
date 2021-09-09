@@ -199,13 +199,11 @@ class doubleCatalog:
         a_file = open(name, "rb")
         self.bins = pk.load(a_file)
 
-    def create_catalog_draw(self,delta_new2,dx = 20, plot = True, name = 'Catalog'):
+    def create_catalog_draw(self,delta_new2,dx = 20, plot = True, name = 'Catalog', Growthfactor = False, MoWhite = False):
         '''from density 3d numpy array (box) to correlated simple catalog for correlation (in a text file). 
     Density field is the probability field and we make a draw in there.
         dx(Mpc) is the physical length of a pixel in the box. 
-        The observer is always at nc//2.'''
-            
-        nc = len(delta_new2)
+        The observer is always at nc//2.'''        # #select,projection = "mollweide"
         
         print('Arraying...')
         b = np.array([[[[i,j,k] for i in range(nc)] for j in range(nc)] for k in range(nc)])
@@ -229,9 +227,9 @@ class doubleCatalog:
         g = interpolate.interp1d(Z,Dp)
         Dplus = g(Redshifts)
 
-        # #select,projection = "mollweide"
         print('Selecting...')
-        # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
+        if Growthfactor:
+            delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
         def Bias_MoWhite(z,M):
             '''returns Mo & WHite bias for a given z  array and M a solar Mass'''
@@ -242,6 +240,7 @@ class doubleCatalog:
             nu_1 = delta_1/sig0
             Bias = 1+(np.power(nu_1,2)-1)/delta_1
             return(Bias)
+
         ###############################
         ## Testing Mo and White bias ##
         ###############################
@@ -261,8 +260,9 @@ class doubleCatalog:
         def Shellpdf(z,dz = self.z_intervals,mean_M = 1e14):
             '''3D probability probability'''
             # Bias = Bias_MoWhite(Redshifts,np.ravel([mean_M]))
-            Bias = Bias_MoWhite(Redshifts,mean_M)
             Bias = 1
+            if MoWhite:
+                Bias = Bias_MoWhite(Redshifts,mean_M)
             print('Max number of objects in the shell : ', np.sum((z - dz / 2 <= Redshifts) * (Redshifts <= z + dz / 2)))
             b = (z-dz/2<=Redshifts)*(Redshifts<=z+dz/2)*(delta_new2>=-1)*(1+Bias*delta_new2) #method 1
             b = b/np.sum(b)
@@ -386,19 +386,20 @@ class doubleCatalog:
 
 nc = 256
 dx = 20
-delta_new2 = np.fromfile("heavy files/"+'boxnc'+str(nc)+'dx'+str(int(dx)))
-delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
-temp = doubleCatalog()
-temp.GenerateCorrelatedCounts(delta_new2)
-print(temp.entries)
+# # print(create_catalog_draw(delta_new2,dx = dx, number = 60000))
+# temp = doubleCatalog()
+# temp.GenerateCorrelatedCounts(delta_new2)
+# print(temp.entries)
 # #######################Mo & White Bias###########################
-# for i in range(20,40):
-#     print('Iteration '+str(i))
-#     temp = doubleCatalog()
-#     temp.Generate(name = 'BigCorrelationCatalog'+str(i))
-#     temp.create_catalog_draw(delta_new2,plot = False, name = 'BigCorrelationCatalog'+str(i))
-#     print('------------')
+for i in range(20):
+    print('Iteration '+str(i))
+    delta_new2 = np.fromfile("heavy files/"+'boxnc'+str(nc)+'dx'+str(int(dx)))
+    delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+    temp = doubleCatalog()
+    # temp.Generate(name = 'BigCorrelationCatalog'+str(i))
+    temp.Generate(name = 'BigDoubleCatalog'+str(i))
+    temp.create_catalog_draw(delta_new2,plot = False, name = 'BigDoubleCatalog'+str(i), Growthfactor = False, MoWhite = False)
+    print('------------')
 
 # res = temp.Bias_MoWhite(np.linspace(0.1,1,11),np.linspace(1e14,1e16,12))
 

@@ -116,7 +116,7 @@ def create_catalog_threshold(delta_new2,dx = 20, threshold = 1.686, plot = True)
         # cbar.set_label('Longitude')
         plt.show()
 
-def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='discrete', MonteCarloIndex = 0):
+def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='discrete', MonteCarloIndex = 0, Growthfactor = False):
     '''from density 3d numpy array (box) to correlated simple catalog for correlation (in a text file). 
    Density field is the probability field and we make a draw in there.
     dx(Mpc) is the physical length of a pixel in the box. 
@@ -132,25 +132,26 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='
         print('Sphericalizing...')
         r, az, elev = convert_cartesian_to_sky_full_angle(b[:,:,:,0]-mid,b[:,:,:,1]-mid,b[:,:,:,2]-mid)
 
-    # # No Newton
-    # print('Redshifting...')
-    # from scipy import interpolate
-    # step = 0.01
-    # zmax = radialcomov_to_redshift(r.max()*dx)+0.1
-    # Z = np.linspace(0,zmax, int((zmax-0)/step)+1)
-    # temp = cosmo.Cosmology()
-    # R = [temp.comoving_Distance(z) for z in Z]
-    # f = interpolate.interp1d(R, Z)
-    # Redshifts = f(r*dx)
+    # No Newton
+        print('Redshifting...')
+        from scipy import interpolate
+        step = 0.01
+        zmax = radialcomov_to_redshift(r.max()*dx)+0.1
+        Z = np.linspace(0,zmax, int((zmax-0)/step)+1)
+        temp = cosmo.Cosmology()
+        R = [temp.comoving_Distance(z) for z in Z]
+        f = interpolate.interp1d(R, Z)
+        Redshifts = f(r*dx)
 
 
-    # Dp = [temp.Dplus(z,mode = 'np') for z in Z]
-    # g = interpolate.interp1d(Z,Dp)
-    # Dplus = g(Redshifts)
+        Dp = [temp.Dplus(z,mode = 'np') for z in Z]
+        g = interpolate.interp1d(Z,Dp)
+        Dplus = g(Redshifts)
 
-    # #select,projection = "mollweide"
-    # print('Selecting...')
-    # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
+        #select,projection = "mollweide"
+        print('Selecting...')
+        if Growthfactor:
+            delta_new2 = Dplus*delta_new2 #must be commented if not Dplus
 
     print('Drawing points...')
     # c = -1/np.min(delta_new2)
@@ -306,16 +307,16 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='
 
 #######################cataloger MonteCarlo on different bx###########################
 
-nc = 256
+nc = 20
 dx = 20
 # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
 
-for i in range(20):
+for i in range(1):
     print('Iteration: ',i)
     print('-------------------')
-    delta_new2 = np.fromfile('heavy files/box'+str(i)+'nc'+str(nc)+'dx'+str(int(dx)))
+    delta_new2 = np.fromfile('heavy files/box'+'nc'+str(nc)+'dx'+str(int(dx)))
     delta_new2 = np.reshape(delta_new2,(nc,nc,nc))  
-    create_catalog_draw(delta_new2,dx = dx, number = 200000,plot = False, MonteCarloIndex=i,mode = 'continuous')
+    create_catalog_draw(delta_new2,dx = dx, number = 8000,plot = False, MonteCarloIndex=i,mode = 'continuous')
 
 
 

@@ -42,7 +42,7 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
 
     #### LOAD DATA, from the same catalog !!!
     # Load Correlation Data
-    r = np.loadtxt('heavy files/Corrbins'+corrfilename+'.txt')
+    r = np.loadtxt('heavy files/binsCorr'+corrfilename+'.txt')
     xsi = np.array([np.loadtxt('heavy files/Corr'+corrfilename+'.txt')])
     # xsi = np.array([integralXsi(r,cosmo.Cosmology())])
     std = np.loadtxt('heavy files/stdCorrBig0.txt')
@@ -73,7 +73,7 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
             for i in range(len(counts)):
                 for j in range(len(counts[0])):
                     mean_poisson = universe.expected_Counts(Mmin[j], Mmax[j], zmin[i], zmax[i],rad2 = 4*np.pi)
-                    res += -0.5*(mean_poisson-counts[i,j])**2/mean_poisson  #diagonal cov
+                    res += -0.5*(mean_poisson-counts[i,j])**2/mean_poisson  #diagonal Gaussian cov
         # sum or not
         if mode == 'counts':
             return(res)
@@ -99,19 +99,20 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
     integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
     # print(integral)
     f = scipy.interpolate.interp1d(integral, t)
-    # t_contours = f(np.array([0.95, 0.68]))
+    t_contours = f(np.array([0.95, 0.68]))
 
     ax1 = plt.subplot(121)
-    ax1.contourf(X, Y, Z)
+    # ax1.contourf(X, Y, Z)
     ax1.scatter(O[a % len(S)], S[a // len(S)])
-    # ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
+    ax1.contour(X, Y, Z, t_contours,colors = ['red','blue'],alpha = 0.5)
     ax1.set_xlabel(r'$\Omega_m$')
     ax1.set_ylabel(r'$\sigma_8$')
 
     ## Plot effective correlation versus data
     ax2 = plt.subplot(122)
     #ref
-    xref, yref = readtxt('Vérifications fonctions/xsi.txt')
+    xref = np.linspace(15,220,50)
+    yref = integralXsi(xref, cosmo.Cosmology())
     ax2.plot(xref, yref,color = 'black',linewidth = 1)
     #data
     ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
@@ -132,6 +133,7 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
     ax2.set_ylabel('Correlation function')
     ax2.set_xlim([15,225])
     ax2.set_ylim([-0.025,0.20])
+    plt.tight_layout()
     plt.show()
 
 
@@ -139,7 +141,7 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
     universe = cosmo.Cosmology()
     #### LOAD DATA, from the same catalog !!!
     # Load Correlation Data
-    r = np.loadtxt('heavy files/Corrbins'+corrfilename+'.txt')
+    r = np.loadtxt('heavy files/binsCorr'+corrfilename+'.txt')
     xsi = np.array([np.loadtxt('heavy files/Corr'+corrfilename+'.txt')])
     # xsi = np.array([integralXsi(r,cosmo.Cosmology())])
     std = np.loadtxt('heavy files/stdCorrBig0.txt')
@@ -177,13 +179,14 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
             return +np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0]
         return +np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0] -res
       
-    # sol = opt.minimize(loglikelihood, [0.3,0.8],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
-    sol = opt.minimize(loglikelihood, [0.3,0.8], bounds = ((0,1),(0,2))).x
+    sol = opt.minimize(loglikelihood, [0.3,0.8],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
+    # sol = opt.minimize(loglikelihood, [0.3,0.8], bounds = ((0,1),(0,2))).x
     if plot:
         # ref versus data
         ax2 = plt.subplot()
         #ref
-        xref, yref = readtxt('Vérifications fonctions/xsi.txt')
+        xref = np.linspace(15,220,50)
+        yref = integralXsi(xref,cosmo.Cosmology())
         ax2.plot(xref, yref,color = 'black',linewidth = 1)
         #data
         ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
@@ -203,7 +206,8 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
 
     return(sol) #
 
-# plot_likelihood('BigCorrelation6','BigCorrelationCatalog6',np.linspace(0.10,0.50,11),np.linspace(0.6,1.0,11),mode = 'multi')
-print(refineMax('BigCorrelation12','BigCorrelationCatalog12',mode = 'multi',plot = True))
+plot_likelihood('BigCorrelationmean','BigDoubleCatalog2',np.linspace(0.25,0.35,41),np.linspace(0.75,0.85,41),mode = 'multi')
+# print(refineMax('BigCorrelationmean','BigDoubleCatalog2',mode = 'multi',plot = True))
+
 
 ## coder counts en gaussien aussi sinon ? utile pour la suite.

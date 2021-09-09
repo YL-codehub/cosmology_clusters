@@ -521,13 +521,14 @@ def plot_likelihoodConvol(r,xsi,O,S,std,R,mode = 'diagonal'):
 ##################### Report :
 
 ###### Box refinement
-# x = np.array(np.loadtxt('heavy files/binsCorrBigMC0.txt'))
+x = np.array(np.loadtxt('heavy files/binsCorrBigMC0.txt'))
 # y = np.array(np.loadtxt('heavy files/CorrBigMCmean.txt'))
-# std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
-# print(refineMax(x,y,std,plot=True))
+y = np.array(np.loadtxt('heavy files/CorrBigMCContinuousmean.txt'))
+std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+print(refineMax(x,y,std,plot=True))
 
 ###### Contour Type 3
-x = np.loadtxt('heavy files/binsCorrBigMC0.txt')
-y = integralXsi(x,cosmo.Cosmology())
-std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
-plot_likelihood(x, y, np.linspace(0.1,0.6,51),np.linspace(0.6,1.1,51),std)
+# x = np.loadtxt('heavy files/binsCorrBigMC0.txt')
+# y = integralXsi(x,cosmo.Cosmology())
+# std = np.array(np.loadtxt('heavy files/stdCorrBigMC.txt'))
+# plot_likelihood(x, y, np.linspace(0.1,0.6,51),np.linspace(0.6,1.1,51),std)
