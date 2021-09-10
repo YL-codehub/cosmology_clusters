@@ -2,16 +2,15 @@ from numpy.linalg.linalg import norm
 import Cosmological_tools as cosmo
 import scipy.optimize as opt
 import numpy as np
-# import dataCorrelation as dC
 import csv
 import matplotlib.pyplot as plt
 import scipy.integrate as intg
 import scipy.interpolate 
 import math as m
-# ax1 = plt.subplot(121)
-# ax2 = plt.subplot(122)
+
 
 def readtxt(file):
+    '''To read reference files/plot, with two columns'''
     X = []
     Y = []
     with open(file, newline='\n') as csvfile1:
@@ -24,8 +23,8 @@ def readtxt(file):
     return(X,Y)
 
 
-    # Array integral mode :
 def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
+    '''To compute efficiently the correlation xsi at radial distances stored in R and depending in the cosmology. Other parameters are for the discretization of the integration'''
     K = np.array([np.linspace(a, b, n)])
     dK = (b - a) / n
     X = np.array([R]).T
@@ -36,17 +35,14 @@ def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
 
 
 def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, zinf = 0,zsup = 0.6118479756853465,dlogM = 0.1,dz = 0.1, mode = 'multi'):
-    '''Xsi(r) = fourier^-1{spectrum) on xsi(r) data points 
-    (usually coming from Landy and Szaslay estimator).'''
+    '''Plot likelihood of the joint (multi mode) refinement of both the counts and the correlation. Possibility to refine only one of them depending on the mode.'''
     universe = cosmo.Cosmology()
 
     #### LOAD DATA, from the same catalog !!!
     # Load Correlation Data
     r = np.loadtxt('heavy files/binsCorr'+corrfilename+'.txt')
     xsi = np.array([np.loadtxt('heavy files/Corr'+corrfilename+'.txt')])
-    # xsi = np.array([integralXsi(r,cosmo.Cosmology())])
     std = np.loadtxt('heavy files/stdCorrBig0.txt')
-    # Sigma = np.eye(len(xsi[0]))
     Sigma = np.zeros((len(xsi[0]),len(xsi[0])))
     np.fill_diagonal(Sigma,std**2)
     invSig = np.linalg.inv(Sigma)
@@ -82,9 +78,6 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
         return -np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0] + res
         
     Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
-        # np.savetxt('countsresultZ',Z)
-        # np.savetxt('countsresultO',O)
-        # np.savetxt('countsresultS',S)
 
     a = np.argmax(Z)
     print('Omega_m :', O[a % len(S)])
@@ -97,7 +90,6 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
     #     # #
     t = np.linspace(0, Z.max(), 1000)
     integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-    # print(integral)
     f = scipy.interpolate.interp1d(integral, t)
     t_contours = f(np.array([0.95, 0.68]))
 
@@ -118,15 +110,9 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
     ax2.errorbar(r,xsi.T, yerr=std,fmt='none',capsize = 3,ecolor = 'red',elinewidth = 0.7,capthick=0.7)
     # refined
     universe = cosmo.Cosmology(Omega_m=O[a % len(S)],Omega_v=1-O[a % len(S)], sigma_8=S[a // len(S)])
-    # f = lambda k,x : universe.initial_Power_Spectrum_BKKS(k) * np.sin(k*x)/(k*x) * k ** 2 / (2 * np.pi ** 2)
-    # xsi_model = np.array([[intg.quad(lambda k : f(k,x), 0, np.inf,limit=1000)[0] for x in r]])
     xsi_model = integralXsi(xref,universe)
     ax2.scatter(r,xsi[0], color = 'blue',marker = '+')
     ax2.plot(xref,xsi_model.T, color = 'blue',linestyle = '--',linewidth = 1)
-
-    # universeRef = cosmo.Cosmology()
-    # xsi_ref = integralXsi(r,universeRef)
-    # ax2.plot(r, xsi_ref,color = 'red',linewidth = 1) #ok equivalent to theory
 
     ax2.legend(['Theoretical','Refined','Data'])
     ax2.set_xlabel('Radial distance (Mpc)')
@@ -138,6 +124,7 @@ def plot_likelihood(corrfilename,countsfilename,O,S,Minf = 1.6e14,Msup = 1e16, z
 
 
 def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zsup = 0.6118479756853465,dlogM = 0.1,dz = 0.1, mode = 'multi', plot = False):
+    '''Joint (multi mode) refinement of both the counts and the correlation. Possibility to refine only one of them depending on the mode.'''
     universe = cosmo.Cosmology()
     #### LOAD DATA, from the same catalog !!!
     # Load Correlation Data
@@ -180,7 +167,7 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
         return +np.matmul((xsi-xsi_model),np.matmul(invSig,(xsi-xsi_model).T))[0,0] -res
       
     sol = opt.minimize(loglikelihood, [0.3,0.8],options={ 'disp': True}, bounds = ((0,1),(0,2))).x
-    # sol = opt.minimize(loglikelihood, [0.3,0.8], bounds = ((0,1),(0,2))).x
+
     if plot:
         # ref versus data
         ax2 = plt.subplot()
@@ -206,8 +193,7 @@ def refineMax(corrfilename,countsfilename,Minf = 1.6e14,Msup = 1e16, zinf = 0,zs
 
     return(sol) #
 
-plot_likelihood('BigCorrelationmean','BigDoubleCatalog2',np.linspace(0.25,0.35,41),np.linspace(0.75,0.85,41),mode = 'multi')
+# Choose, uncomment and modify :
+# plot_likelihood('BigCorrelationmean','BigDoubleCatalog2',np.linspace(0.25,0.35,41),np.linspace(0.75,0.85,41),mode = 'multi')
 # print(refineMax('BigCorrelationmean','BigDoubleCatalog2',mode = 'multi',plot = True))
 
-
-## coder counts en gaussien aussi sinon ? utile pour la suite.

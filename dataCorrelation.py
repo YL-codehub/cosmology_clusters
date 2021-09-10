@@ -10,6 +10,8 @@ from scipy import interpolate
 import scipy.integrate as intg
 import scipy.optimize as opt
 
+#choose a mode :
+
 mode = None
 # mode = 'perso' ## then my version, MC implementation
 # mode = 'nbodykit'
@@ -59,16 +61,6 @@ def plotDraw(Catalog):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
-    # radius = 
-    # # draw sphere
-    # u, v = np.mgrid[0:2 * np.pi:50j, 0:np.pi:50j]
-    # x = radius*np.cos(u) * np.sin(v)
-    # y = radius*np.sin(u) * np.sin(v)
-    # z = radius*np.cos(v)
-
-    # alpha controls opacity
-    # ax.plot_surface(x, y, z, color="g", alpha=0.3)
-
     #draw random points:
     for coords in Catalog:
         ax.scatter(*coords,marker = 'o')
@@ -80,8 +72,6 @@ def plotDraw(Catalog):
     ax.set_title('Points in a sphere')
 
     plt.show()
-
-# plotDraw(1000,2)
 
 # Landy and Szaslay estimator for correlation data
 
@@ -500,30 +490,30 @@ if mode == 'MC':
 
 
 # ####simple plot of mean (mean)
-XSIS = []
-# XsisMC = np.loadtxt('heavy files/BigMCXSIs.txt')
-# XsisMC = np.loadtxt('heavy files/BigMCContinuousXSIs.txt')
-XsisMC = np.loadtxt('heavy files/BigCorrelationXSIs.txt')
-XSIS = np.array(XsisMC).T
-meanXSIS = np.mean(XSIS,axis = 1)
-print(np.cov(XSIS).shape)
-Cov = np.cov(XSIS)/XSIS.shape[0]
+# XSIS = []
+# # XsisMC = np.loadtxt('heavy files/BigMCXSIs.txt')
+# # XsisMC = np.loadtxt('heavy files/BigMCContinuousXSIs.txt')
+# XsisMC = np.loadtxt('heavy files/BigCorrelationXSIs.txt')
+# XSIS = np.array(XsisMC).T
+# meanXSIS = np.mean(XSIS,axis = 1)
+# print(np.cov(XSIS).shape)
+# Cov = np.cov(XSIS)/XSIS.shape[0]
 
-# np.savetxt('heavy files/CorrBigMCmean.txt',meanXSIS)
-# np.savetxt('heavy files/CorrBigMCContinuousmean.txt',meanXSIS)
-np.savetxt('heavy files/CorrBigCorrelation.txt',meanXSIS)
-#ref
-xr = np.linspace(15,220,50)
-y = integralXsi(xr,cosmo.Cosmology())
-plt.plot(xr, y,color = 'black',linestyle = '--')
+# # np.savetxt('heavy files/CorrBigMCmean.txt',meanXSIS)
+# # np.savetxt('heavy files/CorrBigMCContinuousmean.txt',meanXSIS)
+# np.savetxt('heavy files/CorrBigCorrelationmean.txt',meanXSIS)
+# #ref
+# xr = np.linspace(15,220,50)
+# y = integralXsi(xr,cosmo.Cosmology())
+# plt.plot(xr, y,color = 'black',linestyle = '--')
 
-r = np.loadtxt('heavy files/binsCorrBigMC0.txt')
-plt.errorbar(r,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',capsize = 3,elinewidth = 0.7,capthick=0.7) # Be careful those are not error bars but only the delta delta values dispersions
-plt.scatter(r,meanXSIS,linewidths=1.1,color = 'blue',marker = '+')
+# r = np.loadtxt('heavy files/binsCorrBigMC0.txt')
+# plt.errorbar(r,meanXSIS, yerr= np.sqrt(Cov.diagonal()),ecolor= 'red', fmt = 'none',capsize = 3,elinewidth = 0.7,capthick=0.7) # Be careful those are not error bars but only the delta delta values dispersions
+# plt.scatter(r,meanXSIS,linewidths=1.1,color = 'blue',marker = '+')
 
-plt.legend(['Theoretical','Box (bins)'])
-plt.tight_layout()
-plt.show()
+# plt.legend(['Theoretical','Box (bins)'])
+# plt.tight_layout()
+# plt.show()
 
 
 

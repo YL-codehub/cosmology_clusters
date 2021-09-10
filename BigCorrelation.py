@@ -33,57 +33,28 @@ print(MultiBins.shape)
 XSIS = np.array(XSIS).T # 2D array (Catalog x bins)
 np.savetxt('heavy files/BigCorrXSIs.txt',XSIS)
 
-# ##### Adimensionning Counts :
-# # Mean mass of a cluster (solar masses)
-# MeanMass = np.mean(MeanMass)
-# print('Mean mass of a cluster :', MeanMass/1e14, 'x10^14 solar masses')
 
-# # Mean density of the universe (solar masses.Mpc^⁻3)
-# rho_m = 135998175800.99973
-
-# # Volume of a bin (Mpc^3) dz = 0.1, et dM = ...
-# dz = 418.4544876277076 # Mpc
-# scale = np.ravel([1.6*10**(14+i*0.1) for i in range(18)])
-# dM = scale*(10**(0.1)-1) # solarMasses
-# Vbins = dM*dz # solarMasses.Mpc for each mass bin
-
-# Normalizer = MeanMass/(dM*dz*rho_m)
-# Normalizer = np.array([list(Normalizer)*7])
-# MultiBins = np.multiply(MultiBins,Normalizer.T)
-## Correlation computations
-# Xsis = np.loadtxt('heavy files/BigCorrXSIs.txt').T
 MultiBins = MultiBins/np.max(np.abs(MultiBins))
 XSIS = XSIS/np.max(np.abs(MultiBins))
 All = np.vstack([MultiBins,XSIS])
 Cov = np.cov(All)
 np.savetxt('covBig.txt',Cov)
 # (7 Redshifts x 18 Masses)= 126 counts + 21 points de corrélation
-# plt.imshow(Cov)
-# plt.imshow(Cov)
 corr = np.corrcoef(All)
 plt.imshow(corr)
 plt.colorbar()
 plt.show()
 
-# setup the figure and axes
+######### Plot 3D of the correlation matrix
 fig = plt.figure(figsize=(8, 3))
 ax1 = fig.add_subplot(111, projection='3d')
-
-# fake data
 n1 = 7 * 18
 n2 = 21
 n = len(corr)
 _x = np.arange(n)+0.5
 _y = np.arange(n)+0.5
 _xx, _yy = np.meshgrid(_x, _y)
-# print(_xx)
-# print(_yy)
 x, y = _xx.ravel(), _yy.ravel()
-# print(x)
-# print(y)
-# top = x+y
-# print(top)
-# print(top.shape)
 top = np.ravel(corr[:n,:n])
 bottom = np.zeros_like(top)
 width = depth = 1
