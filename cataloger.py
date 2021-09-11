@@ -7,7 +7,7 @@ import csv
 import time as t
 from scipy.interpolate import RegularGridInterpolator as rgi
 import scipy.stats as st
-### Corentin's functions (verified)
+
 def convert_cartesian_to_sky_full_angle(X,Y,Z):
     RA = np.arctan2(X,Z)
     DEC = np.arcsin(Y/np.sqrt(X**2 + Y**2 + Z**2))
@@ -76,8 +76,8 @@ def create_catalog_threshold(delta_new2,dx = 20, threshold = 1.686, plot = True)
     # Dplus = g(Redshifts)
 
     # #select,projection = "mollweide"
-    print('Selecting...')
     # delta_new2 = Dplus*delta_new2 #must be commented if not Dplus? no i don't think so
+    print('Selecting...')
     Redshifts = r*dx #must be commented if Dplus #must be commented if Dplus
     selection = (delta_new2>threshold)
     # zmaxsphere = radialcomov_to_redshift(nc//2*dx)
@@ -207,9 +207,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='
         points = Continuous_rejection_method(number)
     
 
-    # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev<np.pi/6)&(elev>0)))
-    # print(np.sum((delta_new2>threshold)&(Redshifts<=zmaxsphere)&(elev>np.pi/6)&(elev<np.pi/2)))
-    
+    # Be careful we store comoving coordinates here and not redshifts in 'Redshifts'.
     if mode == 'discrete':
     ## Discrete selection :
         Redshifts = r*dx
@@ -243,11 +241,7 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='
         # plt.subplot(111, projection="polar")
         plt.title("Selected objects")
         plt.grid(True)
-        plt.scatter(selectedAz,selectedElev, marker = '.',linewidths=0.01)#, c = selectedRedshifts)
-        # plt.scatter(selectedLatt*180/np.pi,selectedRedshifts, marker = '.', c=selectedLong*180/np.pi,linewidths=0.05)
-        # cbar = plt.colorbar()
-        # cbar.set_label('Redshifts')
-        # cbar.set_label('Longitude')
+        plt.scatter(selectedAz,selectedElev, marker = '.',linewidths=0.01)
         plt.show()
 
 
@@ -268,55 +262,24 @@ def create_catalog_draw(delta_new2,dx = 20, number = 10000, plot = True, mode ='
 # plt.show()
 
 #######################cataloger threshold###########################
-
-
+### naive way to draw a catalog
 # nc = 256
 # dx = 20
 # delta_new2 = np.fromfile('boxnc'+str(nc)+'dx'+str(int(dx)))
 # delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(np.max(delta_new2),np.std(delta_new2))
 # create_catalog_threshold(delta_new2,threshold = 2.15,dx = dx)
 
-
-# print(radialcomov_to_redshift(20*512))
-
-# ET SI LA DENSITE A UN CONSTRASTE < -1 c'est pas normal
-# print('min density: ',np.min(delta_new2))
-
-#######################cataloger draw###########################
-
+#######################cataloger MonteCarlo on different bx###########################
+#
 # nc = 256
 # dx = 20
-# delta_new2 = np.fromfile('heavy files/box2nc'+str(nc)+'dx'+str(int(dx)))
-# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# print(np.min(delta_new2),np.std(delta_new2))
-# create_catalog_draw(delta_new2,dx = dx, number = 10000,MonteCarloIndex=0,plot = True)
 
-#######################cataloger MonteCarlo###########################
-
-# nc = 256
-# dx = 20
-# delta_new2 = np.fromfile('heavy files/boxnc'+str(nc)+'dx'+str(int(dx)))
-# delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
-# # print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
-
-# for i in range(20):
+# for i in range(1):
 #     print('Iteration: ',i)
 #     print('-------------------')
-#     create_catalog_draw(delta_new2,dx = dx, number = 500000,plot = False,MonteCarloIndex=i)
-
-#######################cataloger MonteCarlo on different bx###########################
-
-nc = 20
-dx = 20
-# print(create_catalog_draw(delta_new2,dx = dx, number = 80000))
-
-for i in range(1):
-    print('Iteration: ',i)
-    print('-------------------')
-    delta_new2 = np.fromfile('heavy files/box'+'nc'+str(nc)+'dx'+str(int(dx)))
-    delta_new2 = np.reshape(delta_new2,(nc,nc,nc))  
-    create_catalog_draw(delta_new2,dx = dx, number = 8000,plot = False, MonteCarloIndex=i,mode = 'continuous')
-
+#     delta_new2 = np.fromfile('heavy files/box'+'nc'+str(nc)+'dx'+str(int(dx))) ### you have to generate those box before (see gen.py)
+#     delta_new2 = np.reshape(delta_new2,(nc,nc,nc))
+#     create_catalog_draw(delta_new2,dx = dx, number = 200000,plot = False, MonteCarloIndex=i,mode = 'discrete')
+#
 
 

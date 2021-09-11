@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 
-##### efficient only for big discretizations in the compute of integrals
+##### Uncomment if you want C-compiled / parallelized functions (efficient only for big discretizations in the compute of integrals)
 
 # from numba import njit
 #
@@ -63,38 +63,6 @@ class Cosmology:
 
         #storing
         self.constant1 = intg.quad(lambda x : 1/(x*self.H(x))**3, 0, 1)[0]
-
-    ## Properties
-    def update(self):
-        '''update properties, has to be called when attributes change'''
-        self.Ho_sec = self.Ho / (self.Mpc * self.c * self.year)  # Hubble constant today (units = s^-1)
-        self.h = self.Ho / 100
-        if self.k == 0:
-            self.R0 = 1
-        else:
-            self.R0 = self.c/(self.Ho*m.sqrt(abs(1-self.OT))) # current radius (units = Mpc)
-        self.critical_density0 = 3*self.Ho**2/(8*m.pi*self.G) # Critical density today (units = SolarMass^1.Mpc^-3)
-        self.density0 = (self.Om+self.Or+self.Ov)*self.critical_density0  # Mean density of the universe today (units = SolarMass^1.Mpc^-3)
-        self.As = self.sigma8 ** 2 * (2 * m.pi) ** 3 / (4*m.pi*intg.quad(lambda k : k ** self.ns * self.transfer_Function_BKKS(k) ** 2 * abs(self.window(k * 8/self.h))** 2 * k ** 2, 0, m.inf)[0])  # Power spectrum law's normalization
-        self.constant1 = intg.quad(lambda x: 1 / (x * self.H(x)) ** 3, 0, 1)[0]
-    # @property
-    # def R0(self): # current radius (units = Mpc)
-    #     if self.k == 0:
-    #         return 1
-    #     else:
-    #         return self.c / (self.Ho * m.sqrt(abs(1 - self.OT)))
-    #
-    # @property  # Critical density today (units = SolarMass^1.Mpc^-3)
-    # def critical_density0(self):
-    #     return 3 * self.Ho ** 2 / (8 * m.pi * self.G)
-    #
-    # @property
-    # def density0(self):# Mean density of the universe today (units = SolarMass^1.Mpc^-3)
-    #     return (self.Om + self.Or + self.Ov) * self.critical_density0
-    #
-    # @property
-    # def As(self):  # Power spectrum law's normalization
-    #     return self.sigma8 ** 2 * (2 * m.pi) ** 3 / (4*m.pi*intg.quad(lambda k : k ** self.ns * self.transfer_Function_BKKS(k) ** 2 * abs(self.window(k * 8/self.h))** 2 * k ** 2, 0, m.inf)[0])
 
     ## Tools
     def S(self,x):
@@ -211,9 +179,7 @@ class Cosmology:
         '''Initial RMS density fluctuation (units = 1) over a given mass M (units = solar Mass)'''
         ### Attention c'est bien la densité de matière qu'il nous faut
         R = (3*M/(4*m.pi*self.Om*self.critical_density0))**(1/3) # (units = Mpc)
-        # return(m.sqrt(4*m.pi*intg.quad(lambda k : self.initial_Power_Spectrum_BKKS(k) * self.window(k * R)** 2 * k ** 2 ,0, m.inf,limit = 100)[0] / ((2 * m.pi) ** 3)))
-        # return (m.sqrt(4 * m.pi * intg.fixed_quad(lambda u: self.initial_Power_Spectrum_BKKS(m.exp(u[0])) * self.window(m.exp(u[0]) * R) ** 2 * m.exp(3*u[0]), -100, 100)[0] / ((2 * m.pi) ** 3)))
-        if mode == 'quad':
+        if mode == 'quad': # very low performance
             return (m.sqrt(4 * m.pi *
                        intg.quad(lambda k: self.initial_Power_Spectrum_BKKS(k) * self.window(k * R) ** 2 * k ** 2, 0,
                                  m.inf,epsabs = 1)[0] / ((2 * m.pi) ** 3)))
@@ -221,8 +187,6 @@ class Cosmology:
             K = np.linspace(-2, 5, 100) #USE njit functions only if more than 1000 values of k
             K = np.power(10,K)
             Y = self.initial_Power_Spectrum_BKKS(K, mode = 'np') * np.power(self.window(K * R, mode = 'np'),2) * np.power(K,2)# k = 10**x
-            # Y = self.initial_Power_Spectrum_BKKS(K, mode='np') * np.power(njit_window(K * R), 2) * np.power(
-            #     K, 2)  # k = 10**x
             return m.sqrt(4 * m.pi * np.trapz(Y,K) / ((2 * m.pi) ** 3))
         elif mode == 'array': # M is an array and so R
             K = np.linspace(-2, 5, 100)  # USE njit functions only if more than 1000 values of k
@@ -233,7 +197,6 @@ class Cosmology:
 
     def Press_Schechter_multiplicity_Function(self,M,z,delta_c = 1.686, mode = 'array'):
         '''Gaussian multiplicity function used in the Press-Schechter HMF formulation  at mass M (units = solarMass) and redshift z'''
-
         if mode == 'np':
             sigma = self.Dplus(z,mode = mode)*self.initial_sigma(M,mode = mode)
             return(m.sqrt(2/m.pi)*(delta_c/sigma)*m.exp(-0.5*(delta_c/sigma)**2))
@@ -244,6 +207,7 @@ class Cosmology:
             return (m.sqrt(2 / m.pi) * (delta_c / sigmas) * np.exp(-0.5 * (delta_c / sigmas) ** 2))
 
     def Tinker_multiplicity_Function(self,M,z):
+        '''Tinker multiplicity function used in the Press-Schechter HMF formulation  at mass M (units = solarMass) and redshift z'''
         sigma = self.Dplus(z) * self.initial_sigma(M)
         a = lambda z: 1.47*(1+z)**(-0.06)
         delta = 200
@@ -277,27 +241,19 @@ class Cosmology:
             dcv = np.array([self.differential_comoving_Volume(z, mode = 'array')])
             dcv = np.repeat(dcv,len(hmf),axis = 0)
             return np.multiply(hmf, dcv)
-        # if mode == 'default':
-        #     return(self.HMF(M,z,multiplicity)*self.differential_comoving_Volume(z))
-        # elif mode == 'array':
-        ## renvoyer un array M x z
-
 
     def expected_Counts(self,Mmin,Mmax,zmin,zmax, rad2 = 10000*(m.pi/180)**2,dlog10M = 0.01, dz = 0.01, mode = 'array'): #(m.pi/180)**2
         '''Expected counts in a rad2 (units = rad^2) portion of the sky, given the Halo theory and so given the HMF density.'''
-        # return(rad2 * intg.dblquad(lambda lnM,z : self.projected_HMF(m.exp(lnM),z), m.log(Mmin), m.log(Mmax), lambda x : zmin, lambda x : zmax)[0]) #dlnM = dM/M
         if mode == 'quad':
-            return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,lambda x: zmax)[0])  # # faire un array
-            # return (rad2 * intg.dblquad(lambda M, z: self.projected_HMF(M, z)*M, Mmin, Mmax, lambda x: zmin, lambda x: zmax)[0])  # dlnM = dM/M
+            return (rad2 * intg.dblquad(lambda lnM, z: self.projected_HMF(m.exp(lnM), z), m.log(Mmin), m.log(Mmax), lambda x: zmin,lambda x: zmax)[0])
         elif mode == 'array':
-            #print(np.sum([[self.projected_HMF(10**y,z)*0.01*0.01*m.log(10) for y in np.linspace(14,16,int(2/0.01)+1)] for z in np.linspace(0,3,int(3/0.01)+1)])*(m.pi/180)**2)
             a = m.log(Mmin, 10)
             b = m.log(Mmax, 10)
             Masses = np.power(10,np.linspace(a,b,int((b-a)/dlog10M)+1))
             Redshifts = np.linspace(zmin, zmax, int((zmax-zmin) / dz)+1)
             return np.sum(self.projected_HMF(Masses,Redshifts))*dlog10M*m.log(10)*dz*rad2
 
-        elif mode == 'superarray': #ie Mmin, Mmax, zmin and zmax are numpy vectors, size M and z _min = // max
+        elif mode == 'superarray': #Not sure it works #here Mmin, Mmax, zmin and zmax are numpy vectors, size M and z _min = // max
             A = np.log10(Mmin)
             B = np.log10(Mmax)
             Masses = []
@@ -341,7 +297,7 @@ def readtxt(file):
     return(X,Y)
 
 def checkplot(temp,file):
-    '''temp = cosmology object'''
+    '''temp = cosmology object, file = name of file in vérification files (where reference files are). uncomment the necessary quantities and plot settings'''
     X, Yref = readtxt(file)
     X = np.array(X)
     # plt.plot(X,Yref, color = 'red')
@@ -404,9 +360,7 @@ def checkplot(temp,file):
 ###################### magnitudes #########################
 # #
 # temp = Cosmology()
-# # print(temp.As)
-# # checkplot(temp,'sigmaM.txt')
-#
+
 # print(temp.expected_Counts(5e14,1e16,0,3,mode = 'array')) # il faut que ce soit de l'ordre de 2000 objets
 # print(temp.expected_Counts(1e13,1e16,0,1.5,mode = 'array',rad2 = (m.pi/180)**2))
-# print(temp.expected_Counts(1e13, 1e16, 0, 5, mode='array',rad2 = 42000*(m.pi/180)**2))
+# print(temp.expected_Counts(1e13, 1e16, 0, 5, mode='array',rad2 = 42000*(m.pi/180)**2)) #~tout le ciel en degrés

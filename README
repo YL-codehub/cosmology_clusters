@@ -1,0 +1,5 @@
+Please have a look at Note_on_CEA_s_summer_internship_version_finale.pdf to understand the use of the different files.
+Those files are only v0 and would need to be re-unified.
+Cosmological_tools.py is imported in any of them.
+Otherwise, each file is independent but often uses output files of others.
+Most of the time, you have to uncomment the end of the file before running it.
