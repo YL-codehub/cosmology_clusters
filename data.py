@@ -1,3 +1,5 @@
+# Generate A poisson draw for a given MxZ grid and compute or refine likelihood
+
 # from astropy.io import fits
 # from astropy.table import Table
 # import astropy.coordinates as coor
@@ -111,40 +113,15 @@ class Catalog:
         plt.xlabel('parameter')
         plt.show()
 
-<<<<<<< HEAD
-    def plotLikelihood(self,O,S,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
-        '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
-        self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=Omega_m_ini, Omega_r=Omega_r, Omega_v=1-Omega_m_ini, Omega_T=Omega_T,sigma_8=sigma_8_ini, n_s=n_s)
-        # Mmin = np.ravel([self.bins[k]['Mmin'] for k in self.bins.keys()])
-        # Zmin = np.ravel([self.bins[k]['zmin'] for k in self.bins.keys()])
-        # Counts = np.ravel([self.bins[k]['counts'] for k in self.bins.keys()])
-=======
     def plotLikelihood(self,O,S,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96, mode = 'poisson'):
         '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
         self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=Omega_m_ini, Omega_r=Omega_r, Omega_v=1-Omega_m_ini, Omega_T=Omega_T,sigma_8=sigma_8_ini, n_s=n_s)
-        
->>>>>>> temp
         def loglikelihood(parameters):
             print(parameters)
             res = 0
             self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=parameters[0], Omega_r=Omega_r, Omega_v=1-parameters[0], sigma_8=parameters[1], n_s=n_s)
             # self.universe.Om = parameters[0]
             # self.universe.sigma8 = parameters[1]
-<<<<<<< HEAD
-            # self.universe.update()
-            for k in self.bins.keys():
-                mean_poisson = self.universe.expected_Counts(self.bins[k]['Mmin'], self.bins[k]['Mmin']*10**self.logM_intervals, self.bins[k]['zmin'],self.bins[k]['zmin'] + self.z_intervals)
-                res += -mean_poisson+self.bins[k]['counts']*m.log(mean_poisson) # take the opposite to take the minimum
-            # res += -mean_poisson + self.bins[k]['counts']*np.log(mean_poisson)
-            # means_poisson = self.universe.expected_Counts(Mmin, Mmin * 10 ** self.logM_intervals,Zmin, Zmin + self.z_intervals, mode='superarray')
-            # res = -means_poisson + Counts * np.log(means_poisson)  # take the opposite to take the minimum
-            return res
-
-        Z = np.array([[loglikelihood([o,s]) for s in S] for o in O])
-        np.savetxt('countsresultZ',Z)
-        np.savetxt('countsresultO',O)
-        np.savetxt('countsresultS',S)
-=======
             # self.universe.update() does not work
             for k in self.bins.keys():
                 mean_poisson = self.universe.expected_Counts(self.bins[k]['Mmin'], self.bins[k]['Mmin']*10**self.logM_intervals, self.bins[k]['zmin'],self.bins[k]['zmin'] + self.z_intervals)
@@ -171,26 +148,12 @@ class Catalog:
         np.savetxt('countsresultZ3',Z)
         np.savetxt('countsresultO3',O)
         np.savetxt('countsresultS3',S)
->>>>>>> temp
 
         a = np.argmax(Z)
         print('Omega_m :', O[a % len(S)])
         print('Sigma :', S[a // len(S)])
         #
-<<<<<<< HEAD
-        # X, Y = np.meshgrid(O, S)
-        # Z = np.exp(Z - Z.max())
-        # Z = Z / Z.sum()
-        # #
-        # t = np.linspace(0, Z.max(), 1000)
-        # integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-        # f = interpolate.interp1d(integral, t)
-        # t_contours = f(np.array([0.95, 0.68]))
-        # plt.contour(X, Y, Z, t_contours)
-        # plt.colorbar()
-        # plt.scatter(O[a % len(S)], S[a // len(S)])
-        # plt.show()
-=======
+
         X, Y = np.meshgrid(O, S)
         Z = np.exp(Z - Z.max())
         Z = Z / Z.sum()
@@ -203,7 +166,6 @@ class Catalog:
         plt.colorbar()
         plt.scatter(O[a % len(S)], S[a // len(S)])
         plt.show()
->>>>>>> temp
 
     def refine(self,H_0 = 70, Omega_m_ini = 0.5, Omega_r = 0, Omega_v = 0.7, Omega_T = 1, sigma_8_ini = 0.50, n_s = 0.96):
         '''Univariate likelihood maximum gives cosmological parameters Omega_m and sigma_8'''
@@ -212,11 +174,7 @@ class Catalog:
             res = 0
             # self.universe = cosmo.Cosmology(H_0=H_0, Omega_m=parameters[0], Omega_r=Omega_r, Omega_v=Omega_v,
             #                                 Omega_T=Omega_T, sigma_8=parameters[1], n_s=n_s)
-<<<<<<< HEAD
-            self.universe.Om = parameters[0]
-=======
             self.universe.Om = parameters[0] ## NOPE DON'T USE THIS BUT RATHER JUST THE PREVIOUS ONE
->>>>>>> temp
             self.universe.sigma8 = parameters[1]
             self.universe.update()
             #oups je crois qu'il faut aussi relancer le calcul d'As ducoup...
@@ -231,51 +189,7 @@ class Catalog:
         return x
 
 # #
-<<<<<<< HEAD
-# temp = Catalog()
-# temp.Generate()
-# temp.save_bins('test')
-# # please take the same rad2
-# temp = Catalog()
-# temp.read_bins('test')
-# temp.plotLikelihood(np.linspace(0.25,0.35,40),np.linspace(0.75,0.85,40))
-# temp.plotLikelihood1D(np.linspace(0.5,1,20)) #sigma8
-# temp.plotLikelihood1D(np.linspace(0.2,0.4,10)) #Omega M
 
-# # debug contours
-O = np.loadtxt('countsresultO')
-S = np.loadtxt('countsresultS')
-Z = np.loadtxt('countsresultZ')
-
-
-a = np.argmax(Z)
-## Check
-print('Omega_m :',O[a%len(S)])
-print('Sigma :',S[a//len(S)])
-X, Y = np.meshgrid(O,S)
-Z = np.exp(Z-Z.max())
-Z = Z/Z.sum()
-#
-t = np.linspace(0, Z.max(), 1000)
-integral = ((Z >= t[:, None, None]) * Z).sum(axis=(1, 2))
-f = interpolate.interp1d(integral,t)
-t_contours = f(np.array([0.95,0.680]))
-cs = plt.contour(X,Y,Z,t_contours, colors = ['red','blue'],alpha = 0.5)
-plt.scatter(O[a%len(S)],S[a//len(S)],marker= '+')
-plt.grid()
-plt.title('Constraints on cosmological parameters thanks to Poisson max likelihood.\n'
-          ' Contours of confidence at 95% (red) and 68% (blue).')
-plt.xlabel(r'$\Omega_m$')
-plt.ylabel(r'$\sigma_8$')
-# plt.show()
-
-# ## MonteCarlo :
-# temp = Catalog()
-# for i in range(10):
-#     temp.bins = {}
-#     temp.Generate()
-#     temp.plotLikelihood(np.linspace(0.2, 0.4, 20), np.linspace(0.7, 0.9, 20))
-=======
 temp = Catalog()
 # temp.Generate()
 # temp.save_bins('test')
@@ -330,7 +244,6 @@ temp.plotLikelihood(np.linspace(0.25,0.35,5),np.linspace(0.75,0.85,5),mode = 'ga
 # plt.scatter(Omega_m,Sigma,linewidths=0.2,marker = '+')
 # plt.show()
 
->>>>>>> temp
 
 #REsults (20x20 maillage) :
 Omega_m = [0.2947368421052632, 0.2947368421052632, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685, 0.30526315789473685, 0.2947368421052632, 0.30526315789473685]

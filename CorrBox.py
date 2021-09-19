@@ -1,3 +1,5 @@
+### Fast and rigorous method to get correlation in the box, also implemented in gen.py
+
 import numpy as np
 import matplotlib.pyplot as plt
 import csv

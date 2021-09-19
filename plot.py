@@ -57,8 +57,5 @@ def plotHMF3D():
     plt.xlabel('log M[solarMasses]')
     plt.ylabel('Redshift')
     plt.show()
-<<<<<<< HEAD
-=======
-    
->>>>>>> temp
+
 plotHMF3D()

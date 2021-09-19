@@ -1,13 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
-<<<<<<< HEAD
-=======
+
 import randPoints as rP
 import scipy.stats as st
 import scipy.spatial as sp
 import Cosmological_tools as cosmo
->>>>>>> temp
 
 ###
 Ho = 70  # Hubble constant today (units = km.s^-1.Mpc^-1)
@@ -23,11 +21,7 @@ h = 0.7
 def readtxt(file):
     X = []
     Y = []
-<<<<<<< HEAD
-    with open(file, newline='\n') as csvfile1:
-=======
     with open('Vérifications fonctions/'+file, newline='\n') as csvfile1:
->>>>>>> temp
         page1 = csv.reader(csvfile1, quotechar=' ')
         for Row in page1:
             a = Row[0].split()
@@ -43,10 +37,6 @@ def transfer_Function_BKKS(k,Om = 0.3,h= 0.7):
     res = (np.log(1 + 2.34 * q) / (2.34 * q)) * np.power(1 + 3.89 * q + np.power(16.1 * q, 2) + np.power(5.46 * q, 3) + np.power(6.71 * q, 4), -0.25)
     res = np.nan_to_num(res,nan = 1)
     return res
-<<<<<<< HEAD
-=======
-
->>>>>>> temp
 
     # Array integral mode :
 def integralXsi(R,univ,a = 1e-7, b= 1e3,n = 100000):
@@ -61,10 +51,9 @@ def window(y):
     '''Window function in Fourier space, the product with which allows to get rid of low values of radius or mass'''
     return (3 * (np.sin(y) / y - np.cos(y)) / np.power(y, 2))
 
-<<<<<<< HEAD
 import scipy.integrate as intg
 # As = sigma8 ** 2 * (2 * np.pi) ** 3 / (4*np.pi*intg.quad(lambda K : K **  ns *  transfer_Function_BKKS(K) ** 2 * abs( window(K * 8/ h))** 2 * K ** 2, 0, np.inf,limit = 100)[0])
-=======
+
 def XsiEval(r, Dist,xsis,dr):
     '''Dist is the distance matrix from two catalogs.
     xsis = kron
@@ -77,7 +66,6 @@ def XsiEval(r, Dist,xsis,dr):
 
 import scipy.integrate as intg
 # As = sigma8 ** 2 * (2 * np.pi) ** 3 / (4*np.pi*intg.quad(lambda K : K **  ns *  transfer_Function_BKKS(K) ** 2 * abs( window(K * 8/ h))** 2 * K ** 2, 0, np.inf,limit = 500)[0])
->>>>>>> temp
 # print(As)
 As = 6027309.4271296235
 
@@ -85,49 +73,26 @@ def initial_Power_Spectrum_BKKS(K):
     '''spatial part of Power spectrum (units = Mpc^3) at wavenumber k (units = Mpc^-1)'''
     return (As * np.multiply(np.power(K,ns),np.power(transfer_Function_BKKS(K),2)))
 
-#==================================
-<<<<<<< HEAD
-def main():
-#==================================
 
-
-    nc = 20      # define how many cells your box has
-=======
 def main(saveCorr = -1):
 #==================================
-
-
     nc = 256  # define how many cells your box has
->>>>>>> temp
     boxlen = nc*20       # define length of box (Mpc)
     dx = boxlen/nc          # get size of a cell (Mpc), 20Mpc gives ~ 8h^-1 Mpc sphere
 
     # get overdensity field
     delta = np.random.normal(0, 1, size=(nc, nc, nc))
-<<<<<<< HEAD
-    # delta_k = np.fft.rfftn(delta)
-    delta_k = np.fft.rfftn(delta)/(nc**(3/2)) #equivalent to norm = "ortho")
-    # delta_k = np.random.normal(0, 1, size=(nc, nc, nc//2+1))
-    # delta_k = delta_k/np.sqrt(np.mean(np.abs(delta_k))**2)
-    # print(np.mean(np.abs(delta_k))**2)
-    # get 3d array of index integer distances to k = (0, 0, 0), ie compute k values' grid in Fourier space
-=======
     print('ffting...')
     delta_k = np.fft.rfftn(delta)/(nc**(3/2)) #equivalent to norm = "ortho")
 
     # get 3d array of index integer distances to k = (0, 0, 0), ie compute k values' grid in Fourier space
     print('Spectrum incoming...')
->>>>>>> temp
     dist = np.minimum(np.arange(nc), np.arange(nc,0,-1))
     dist_z = np.arange(nc//2+1)
     dist *= dist #²
     dist_z *= dist_z #²
     dist_3d = np.sqrt(dist[:, None, None] + dist[:, None] + dist_z)
 
-<<<<<<< HEAD
-#ajout:
-=======
->>>>>>> temp
     dk = 2*np.pi/boxlen
     kMpc = dist_3d*dk #Mpc^-1
 
@@ -140,12 +105,10 @@ def main(saveCorr = -1):
     # print(Spectrum)
 
     # Back to real space
-<<<<<<< HEAD
     delta_new = np.fft.irfftn(Spectrum, norm = "ortho")*(1/dx)**(3/2) # converting sqrt(P(k))**3 (Mpc^3/2) to cells^3/2
     # delta_new = np.fft.irfftn(Spectrum)/(2*np.pi)**3
 
     # plot overdensity constrast
-=======
     print('inverse ffting...')
     delta_new = np.fft.irfftn(Spectrum, norm = "ortho")*(1/dx)**(3/2) # converting sqrt(P(k))**3 (Mpc^3/2) to cells^3/2
     
@@ -156,133 +119,40 @@ def main(saveCorr = -1):
 
     # plot overdensity constrast
     print('Plotting contrasts slices...')
->>>>>>> temp
     fig, axs = plt.subplots(2, 2)
     axs[0,0].imshow(delta[nc//2,:,:])
     axs[0,0].set_title('Initial white noise')
 
 
     axs[1, 0].imshow(delta_new[nc // 2, :, :])
-<<<<<<< HEAD
-    axs[1, 0].set_title(r'Overensity contrast at z = 0, $\sigma_8 =$ '+str(np.std(delta_new).round(2)))
 
     # Check Spectrum (and so the units !)
-
-=======
     axs[1, 0].set_title(r'$\delta$'+' map, '+ r'$\sigma =$'+str(np.std(delta_new).round(2)))
 
     # Check Spectrum (and so the units !)
     print('Plotting Spectrum...')
->>>>>>> temp
     xref, yref = readtxt('pk_bbks.txt')
     axs[0,1].plot(xref, yref, color='red')
 
     distances, _ = np.unique(kMpc, return_inverse=True)
     Pk = np.bincount(_, weights=np.abs(P_BKKS.ravel())) / np.bincount(_)
-<<<<<<< HEAD
-    axs[0, 1].scatter(distances, Pk, marker='+',color = 'blue')
-    nPk = np.bincount(_, weights=np.abs(np.multiply(P_BKKS,abs(delta_k)**2).ravel()))/np.bincount(_)
-    axs[0,1].scatter(distances, nPk, marker = '+',color = 'green')
 
-    axs[0,1].legend(['Reference', 'Non noisy mine', 'Noisy Mine'])
-=======
     # axs[0, 1].scatter(distances, Pk, marker='+',color = 'blue')
     nPk = np.bincount(_, weights=np.abs(np.multiply(P_BKKS,abs(delta_k)**2).ravel()))/np.bincount(_)
     axs[0,1].scatter(distances, nPk, marker = '+',color = 'green')
 
     # axs[0,1].legend(['Reference', 'Non noisy mine', 'Noisy Mine'])
     axs[0,1].legend(['Theoretical', 'Box (noisy)'])
->>>>>>> temp
+
     axs[0,1].semilogy()
     axs[0,1].semilogx()
     axs[0,1].set_xlim([1e-5,1e2])
     axs[0,1].grid()
-<<<<<<< HEAD
-    axs[0,1].set_title('Induced Spectrum')
-=======
     axs[0,1].set_title('Spectrum space')
->>>>>>> temp
     axs[0,1].set_xlabel('Wave number '+r'$k$ $(Mpc^{-1}$)')
     axs[0,1].set_ylabel(r'$P(k)$')
     # plt.show()
 
-<<<<<<< HEAD
-    # Computing correlation. # NE PAS TOUT CALCULER
-    val = {}
-    n =1
-    for i1 in range(nc):
-        for i2 in range(nc):
-            for j1 in range(nc):
-                for j2 in range(nc):
-                    for k1 in range(nc):
-                        for k2 in range(nc):
-                            ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
-                            try:
-                                val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
-                            except KeyError:
-                                val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
-
-    #     # Computing correlation. # NE PAS TOUT CALCULER
-#     val = {}
-#     n =1
-    #   points = np.random.randint(0,nc,size = (2000,6))
-#     for pair in points:
-        #   i1,i2,j1,j2,k1,k2 = pair
-#         ind = int((i1 - i2) ** 2 + (j1 - j2) ** 2+ (k1 - k2) ** 2)
-#         try:
-#             val[ind].append(delta_new[i1, j1, k1] * delta_new[i2, j2, k2])
-#         except KeyError:
-#             val[ind] = [delta_new[i1, j1, k1] * delta_new[i2, j2, k2]]
-
-    X = []
-    Xsi = []
-    for key in val.keys():
-        if len(val[key]) > nc**2/2:
-            Xsi.append(np.mean(val[key])) #biased correlation estimation,
-            X.append(np.sqrt(key) * dx)
-        # Xsi.append(np.sum(val[key])/(len(val[key])-np.sqrt(key))) #unbiased correlation estimation, estimateur est rarement utilisé car sa variance est très élevée pour les valeurs de k proches de N, et en général moins bon que le cas biaisé
-    # plt.scatter(X,Xsi,linewidths=0.05,color = 'red')
-    axs[1,1].set_ylabel('Correlation function estimation')
-    axs[1,1].set_xlabel('Radial distance (Mpc)')
-
-
-    # Correlation bins
-    nbins = 50
-    beginbins = np.linspace(0,np.max(X),nbins)
-    bins = []
-    stdbins = []
-    for i in range(nbins-1):
-        tempbin = []
-        for j in range(len(X)):
-            if X[j]>= beginbins[i] and X[j]< beginbins[i+1]:
-                tempbin.append(Xsi[j])
-        bins.append(np.mean(tempbin))
-        stdbins.append(np.std(tempbin))
-    # plt.scatter(beginbins[:-1]+0.5*np.max(X)/nbins,bins,color = 'blue',marker = '+')
-    axs[1,1].errorbar(beginbins[:-1]+0.5*np.max(X)/nbins,bins, yerr=stdbins,ecolor= 'red')
-
-## Reference correlation
-    xref, yref = readtxt('xsi.txt')
-    axs[1,1].scatter(xref, yref,linewidths=0.05,color = 'green')
-    axs[1,1].legend(['Ref','Mine'])
-
-    plt.show()
-
-
-
-
-
-
-
-
-
-
-#==================================
-if __name__ == "__main__":
-#==================================
-
-    main()
-=======
     print('Computing correlation...')
     print('...Evaluating...')
     # # # Computing correlation. # NE PAS TOUT CALCULER, just a sub-box
@@ -559,11 +429,11 @@ if __name__ == "__main__":
 
 
 
-# #==================================
-# if __name__ == "__main__":
-# #==================================
+#==================================
+if __name__ == "__main__":
+#==================================
 
-#     main()
+    main()
 
     
     #ref
@@ -626,4 +496,4 @@ for i in range(0,20):
 # plt.show()
 
 
->>>>>>> temp
+
